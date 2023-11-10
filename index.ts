@@ -1,5 +1,4 @@
 import 'dotenv/config'
-
 import OpenAI from 'openai'
 import path from 'path'
 import prompts from 'prompts'
@@ -10,7 +9,7 @@ const openai = new OpenAI()
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
 const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
-const rootdir = '/code'
+const rootdir = '/home/user'
 const repoDir = 'repo'
 const repoDirPath = path.join(rootdir, repoDir)
 
@@ -48,7 +47,7 @@ async function makeCommit(sandbox: Sandbox, message: string) {
 	await processCommit.wait()
 }
 
-async function makePullRequest(sandbox: Sandbox, title: string) {
+async function makePullRequest(sandbox: Sandbox, title: string, body: string) {
 	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath, onStderr: log })
 	await processPush.wait()
 
@@ -103,24 +102,29 @@ async function initChat(): Promise<{ repoURL: string, task: string }> {
 }
 
 async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
-	const toolCals = requiredAction.submit_tool_outputs.tool_calls
+	const toolCalls = requiredAction.submit_tool_outputs.tool_calls
+	console.log(toolCalls)
 	const outputs = []
-	for (const toolCall of toolCals) {
-		let output = null
+	for (const toolCall of toolCalls) {
+		console.log(toolCall.function)
+		const args = JSON.parse(toolCall.function.arguments)
+		console.log('ARGS:\n',args)
+		let output: any
 		const toolName = toolCall.function.name
 		if (toolName === 'makeCommit') {
-			await makeCommit(sandbox,  toolCall.function.arguments[0])
+			await makeCommit(sandbox,  args.message)
 		} else if (toolName === 'makePullRequest') {
-			await makePullRequest(sandbox,  toolCall.function.arguments[0])
+			await makePullRequest(sandbox,  args.title, "body")
 		} else if (toolName === 'saveCodeToFile') {
-			await saveCodeToFile(sandbox,  toolCall.function.arguments[0],  toolCall.function.arguments[1])
+			await saveCodeToFile(sandbox,  args.code, args.filename)
 		} else if (toolName === 'listFiles') {
-			output = await listFiles(sandbox,  toolCall.function.arguments[0])
+			output = await listFiles(sandbox,  args.path)
 		} else if (toolName === 'readFile') {
-			output = await readFile(sandbox,  toolCall.function.arguments[0])
+			output = await readFile(sandbox,  args.path)
 		} else {
 			throw new Error(`Unknown tool: ${toolName}`)
 		}
+
 		if (output) {
 			outputs.push({
 				toolCallId: toolCall.id,
@@ -133,13 +137,13 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 
 const assistant = await getAssistant()
 const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: log, onStderr: log })
-// await loginWithGH(sandbox)
+await loginWithGH(sandbox)
 
 // Start terminal session with user
 // const { repoURL, task } = await initChat()
-const repoURL = "	"
+const repoURL = "https://github.com/mlejva/nextjs-todo-app"
 const task = "Write a function that takes a string and returns the string reversed."
-// await cloneRepo(sandbox, repoURL)
+await cloneRepo(sandbox, repoURL)
 const thread = await createThread(repoURL, task)
 
 let run = await openai.beta.threads.runs.create(
@@ -148,9 +152,9 @@ let run = await openai.beta.threads.runs.create(
 		assistant_id: assistant.id,
 	}
 )
-console.log(run)
-	let counter = 0
-while(true) {
+
+let counter = 0
+while (true) {
 	counter++
 	console.log(counter)
 	await sleep(1000)

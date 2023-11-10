@@ -65,7 +65,16 @@ export const functions = [
       description: "Make a pull request",
       parameters: {
         type: "object",
-        properties: {},
+        properties: {
+          title: {
+            type: "string",
+            description: "The pull request title",
+          },
+          body: {
+            type: "string",
+            description: "The pull request body",
+          },
+        },
       },
     },
   },
