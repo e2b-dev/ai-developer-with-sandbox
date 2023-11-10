@@ -68,7 +68,7 @@ async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
 
 async function makePullRequest(sandbox: Sandbox, title: string, body: string): Promise<string> {
 	try {
-		const processPush = await sandbox.process.start({cmd: 'git push', cwd: repoDirPath, onStderr: log})
+		const processPush = await sandbox.process.start({ cmd: 'git push -u origin ai-developer', cwd: repoDirPath, onStderr: log })
 		await processPush.wait()
 
 		const processPR = await sandbox.process.start({
@@ -217,9 +217,9 @@ while (true) {
 	run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
 	console.log(run.status)
 	if (run.status === 'completed') {
-		const messages= await openai.beta.threads.messages.list(thread.id)
-		messages.data.forEach(m => console.log(m.content))
-		// console.log('message', messages.data[0].content)
+		// const messages = await openai.beta.threads.messages.list(thread.id)
+		// messages.data.forEach(m => console.log(m.content))
+		console.log(messages.data[0].content)
 
 		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: ' ' })
 		await openai.beta.threads.messages.create(thread.id, {
