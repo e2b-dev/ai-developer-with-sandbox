@@ -62,7 +62,7 @@ async function saveCodeToFile(sandbox: Sandbox, code: string, path: string): Pro
 }
 
 async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
-	return (await sandbox.filesystem.list(path)).toString()
+	return (await sandbox.filesystem.list(path)).map(file => file.isDir ? `dir: ${file.name}` : file.name).toString()
 }
 
 async function readFile(sandbox: Sandbox, path: string): Promise<string> {
