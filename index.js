@@ -36,6 +36,7 @@ function getAssistant() {
 
 async function main() {
 	const assistant = await getAssistant()
+	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
 	// Docs https://platform.openai.com/docs/assistants/how-it-works/managing-threads-and-messages
 
 
@@ -50,7 +51,7 @@ async function main() {
 	// TODO: Create custom E2B sandbox "ai-developer-sandbox" and make it public
 
   console.log(assistant)
-	// await sandbox.close()
+	await sandbox.close()
 }
 
 await main()
