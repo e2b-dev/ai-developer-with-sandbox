@@ -1,4 +1,10 @@
-export const functions = [
+import {AssistantCreateParams} from "openai/src/resources/beta/assistants/assistants";
+
+export const functions: Array<
+  | AssistantCreateParams.AssistantToolsCode
+  | AssistantCreateParams.AssistantToolsRetrieval
+  | AssistantCreateParams.AssistantToolsFunction
+> = [
   // Save code to file
   {
     type: 'function',
@@ -18,7 +24,6 @@ export const functions = [
           },
         },
       },
-      required: ["code", "filename"],
     },
   },
   // List files
@@ -36,7 +41,6 @@ export const functions = [
           },
         },
       },
-      required: ["path"],
     },
   },
   // Make commit
@@ -54,7 +58,6 @@ export const functions = [
           },
         },
       },
-      required: ["message"],
     },
   },
   // Make pull request
@@ -93,7 +96,6 @@ export const functions = [
           },
         },
       },
-      required: ["path"],
     },
   },
 ]
