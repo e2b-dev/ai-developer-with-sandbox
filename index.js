@@ -159,17 +159,13 @@ async function main() {
 	await cloneRepo(sandbox, repoURL)
 	const thread = await createThread(repoURL, task)
 
-
-	// Docs https://platform.openai.com/docs/assistants/how-it-works/managing-threads-and-messages
-
-
-	// TODO: Start infinite terminal loop where user communicates with assistant
-	//    - when user starts a new session, create a thread like mentioned here - https://platform.openai.com/docs/assistants/how-it-works/managing-threads-and-messages
-	//    - Read about runs https://platform.openai.com/docs/assistants/how-it-works/runs-and-run-steps
-	//
-	// TODO: Implement tools
-	//   - When a tool returns an output send submit it back to the threads.runs like mentioned here
-	//   - https://platform.openai.com/docs/assistants/tools/submitting-functions-outputs
+	const run = await openai.beta.threads.runs.create(
+		thread.id,
+		{
+			assistant_id: assistant.id,
+		}
+	)
+	console.log(run)
 
 	await sandbox.close()
 }
