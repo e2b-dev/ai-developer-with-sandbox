@@ -3,6 +3,7 @@ import OpenAI from 'openai'
 import path from 'path'
 import prompts from 'prompts'
 import { Sandbox } from '@e2b/sdk'
+import { RunSubmitToolOutputsParams } from 'openai/resources/beta/threads/runs/runs'
 
 const openai = new OpenAI()
 
@@ -83,7 +84,7 @@ function createThread(repoURL: string, task: string) {
 				"content": `Pull this repo: '${repoURL}'. Then carefully plan this task and start working on it: ${task}`,
 			}
 		]
-	});
+	})
 }
 
 async function initChat(): Promise<{ repoURL: string, task: string }> {
@@ -127,11 +128,12 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 
 		if (output) {
 			outputs.push({
-				toolCallId: toolCall.id,
+				tool_call_id: toolCall.id,
 				output: output
 			})
 		}
 	}
+
 	return outputs
 }
 
@@ -165,8 +167,18 @@ while (true) {
 	}
 	else if (run.status === 'requires_action') {
 		console.log(run.required_action)
+
+		if (!run.required_action) {
+			console.log('No required action')
+			continue
+		}
+
 		const outputs = await processAssistantMessage(sandbox, run.required_action)
-		await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, outputs)
+
+		await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, {
+			tool_outputs: outputs,
+		})
+
 	} else if (run.status === 'queued' || run.status === 'in_progress') {
 		continue
 	} else {
