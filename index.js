@@ -2,20 +2,78 @@ import 'dotenv/config'
 import { Sandbox } from '@e2b/sdk'
 import OpenAI from 'openai'
 
-
 const openai = new OpenAI()
-// const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
+const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
 
-function cloneRepo(repoURL) {
-	console.log('Clone repo')
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN
+
+const rootdir = '/code'
+const repoDir = 'repo'
+const repoDirPath = path.join(rootdir, repoDir)
+
+const gitEmail = 'e2b-assistant[bot]@users.noreply.github.com'
+const gitName = 'e2b-assisntant[bot]'
+
+function getAuthRepoURL(repoURL) {
+	return repoURL.replace('https://', `https://${GITHUB_TOKEN}@`)
 }
 
-function makeCommit(message) {
-	console.log('Make commit')
+async function cloneRepo(repoURL) {
+	const repoURLAuth = getAuthRepoURL(repoURL)
+
+	const { output: { stderr } } = await sandbox.process.start({
+		cmd: `git clone --depth 1 ${repoURLAuth} ${repoDir}`,
+		cwd: rootdir,
+		onStdout: console.log,
+	})
+
+	if (stderr) {
+		throw new Error(stderr)
+	}
 }
 
-function makePullRequest() {
-	console.log('Make pull request')
+async function makeCommit(repoURL, message) {
+	const repoURLAuth = getAuthRepoURL(repoURL)
+	
+	const { output: { stderr } } = await sandbox.process.start({
+		cmd: `
+git config --global user.email "${gitEmail}" &&
+git config --global user.name "${gitName}" &&
+git config --global push.autoSetupRemote true &&
+git add . &&
+git commit -m "${message}" &&
+git push ${repoURLAuth}
+`,
+		cwd: repoDirPath,
+		onStdout: console.log,
+	})
+
+	if (stderr) {
+		throw new Error(stderr)
+	}
+}
+
+async function createBranch(branchName) {
+	const { output: { stderr } } = await sandbox.process.start({
+		cmd: `git checkout -b ${branchName}`,
+		cwd: repoDirPath,
+		onStdout: console.log,
+	})
+
+	if (stderr) {
+		throw new Error(stderr)
+	}
+}
+
+function makePullRequest(title) {
+	const branchName = `pr-${title.replace(/\s/g, '-')}`
+
+
+	// Create a new branch
+
+	// Push the branch
+
+	// Create a pull request
 }
 
 function saveCodeToFile(code, filename) {
