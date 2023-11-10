@@ -22,7 +22,7 @@ function log(output: { line: string }) {
 	console.log(output.line)
 }
 
-async function loginWithGH(sandbox: Sandbox) {
+async function loginWithGH(sandbox: Sandbox): Promise<void> {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
 	const process = await sandbox.process.start({ cmd: 'gh auth login --with-token < /home/user/.github-token' })
 	await process.wait()
@@ -32,7 +32,7 @@ async function loginWithGH(sandbox: Sandbox) {
 	}
 }
 
-async function cloneRepo(sandbox: Sandbox, repoURL: string) {
+async function cloneRepo(sandbox: Sandbox, repoURL: string): Promise<void> {
 	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}`, onStderr: log })
 	await process.wait()
 
@@ -40,7 +40,7 @@ async function cloneRepo(sandbox: Sandbox, repoURL: string) {
 	await processCreateBranch.wait()
 }
 
-async function makeCommit(sandbox: Sandbox, message: string) {
+async function makeCommit(sandbox: Sandbox, message: string): Promise<void> {
 	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath, onStderr: log })
 	await processAdd.wait()
 
@@ -48,7 +48,7 @@ async function makeCommit(sandbox: Sandbox, message: string) {
 	await processCommit.wait()
 }
 
-async function makePullRequest(sandbox: Sandbox, title: string, body: string) {
+async function makePullRequest(sandbox: Sandbox, title: string, body: string): Promise<void> {
 	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath, onStderr: log })
 	await processPush.wait()
 
@@ -56,19 +56,16 @@ async function makePullRequest(sandbox: Sandbox, title: string, body: string) {
 	await processPR.wait()
 }
 
-function getPathToRepo(relativePath: string) {
-	return path.join(repoDirPath, relativePath)
-}
 
-async function saveCodeToFile(sandbox: Sandbox, code: string, path: string) {
+async function saveCodeToFile(sandbox: Sandbox, code: string, path: string): Promise<void> {
 	await sandbox.filesystem.write(path, code)
 }
 
-async function listFiles(sandbox: Sandbox, path: string) {
-	return await sandbox.filesystem.list(path)
+async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
+	return (await sandbox.filesystem.list(path)).toString()
 }
 
-async function readFile(sandbox: Sandbox, path: string) {
+async function readFile(sandbox: Sandbox, path: string): Promise<string> {
 	return await sandbox.filesystem.read(path)
 }
 
