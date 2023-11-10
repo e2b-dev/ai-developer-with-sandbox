@@ -12,6 +12,10 @@ const rootdir = '/code'
 const repoDir = 'repo'
 const repoDirPath = path.join(rootdir, repoDir)
 
+function log(output) {
+	console.log(output.line)
+}
+
 async function loginWithGH(sandbox) {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
 	const process = await sandbox.process.start({ cmd: 'gh auth login --with-token < /home/user/.github-token' })
@@ -23,26 +27,26 @@ async function loginWithGH(sandbox) {
 }
 
 async function cloneRepo(sandbox, repoURL) {
-	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}`, onStderr: console.log })
+	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}`, onStderr: log })
 	await process.wait()
 
-	const processCreateBranch = await sandbox.process.start({ cmd: 'git checkout -b ai-developer', cwd: repoDirPath, onStderr: console.log })
+	const processCreateBranch = await sandbox.process.start({ cmd: 'git checkout -b ai-developer', cwd: repoDirPath, onStderr: log })
 	await processCreateBranch.wait()
 }
 
 async function makeCommit(sandbox, message) {
-	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath, onStderr: console.log })
+	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath, onStderr: log })
 	await processAdd.wait()
 
-	const processCommit = await sandbox.process.start({ cmd: `git commit -m "${message}"`, cwd: repoDirPath, onStderr: console.log })
+	const processCommit = await sandbox.process.start({ cmd: `git commit -m "${message}"`, cwd: repoDirPath, onStderr: log })
 	await processCommit.wait()
 }
 
 async function makePullRequest(sandbox, title) {
-	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath, onStderr: console.log })
+	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath, onStderr: log })
 	await processPush.wait()
 
-	const processPR = await sandbox.process.start({ cmd: `gh pr create --title "${title}"`, cwd: repoDirPath, onStderr: console.log })
+	const processPR = await sandbox.process.start({ cmd: `gh pr create --title "${title}"`, cwd: repoDirPath, onStderr: log })
 	await processPR.wait()
 }
 
@@ -127,12 +131,12 @@ async function processAssistantMessage(sandbox, requiredAction) {
 async function main() {
 	const assistant = await getAssistant()
 	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: console.log, onStderr: console.error })
-	// await loginWithGH(sandbox)
+	await loginWithGH(sandbox)
 
 	// Start terminal session with user
 	const { repoURL, task } = await initChat()
 
-	// await cloneRepo(sandbox, repoURL)
+	await cloneRepo(sandbox, repoURL)
 	const thread = await createThread(repoURL, task)
 
 	const run = await openai.beta.threads.runs.create(
