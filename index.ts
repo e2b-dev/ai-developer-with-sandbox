@@ -68,7 +68,7 @@ async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
 
 async function makePullRequest(sandbox: Sandbox, title: string, body: string): Promise<string> {
 	try {
-		const processPush = await sandbox.process.start({cmd: 'git push', cwd: repoDirPath, onStderr: log})
+		const processPush = await sandbox.process.start({ cmd: 'git push -u origin ai-developer', cwd: repoDirPath, onStderr: log })
 		await processPush.wait()
 
 		const processPR = await sandbox.process.start({
