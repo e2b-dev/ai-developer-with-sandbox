@@ -18,17 +18,16 @@ function makePullRequest() {
 	console.log('Make pull request')
 }
 
-function saveCodeToFile(code, filename) {
-	console.log('Save code')
-
+async function saveCodeToFile(sandbox, code, filename) {
+	return await sandbox.filesystem.write(filename, code)
 }
 
-function listFiles(sandbox, path) {
-	return sandbox.filesystem.read(path)
+async function listFiles(sandbox, path) {
+	return await sandbox.filesystem.read(path)
 }
 
-function readFile(sandbox, path) {
-	return sandbox.filesystem.read(path)
+async function readFile(sandbox, path) {
+	return await sandbox.filesystem.read(path)
 }
 
 function getAssistant() {
