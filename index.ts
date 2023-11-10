@@ -248,7 +248,7 @@ while (true) {
 		spinner.stop()
 		const messages = await openai.beta.threads.messages.list(thread.id)
 		const textMessages = messages.data[0].content.filter(message => message.type === 'text') as MessageContentText[]
-		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: `${textMessages[0].text.value}If you want to exit write "exit", otherwise write your response:\n` })
+		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: `${textMessages[0].text.value}\nIf you want to exit write "exit", otherwise write your response:\n` })
 		if (userResponse === 'exit') {
 			break
 		}
