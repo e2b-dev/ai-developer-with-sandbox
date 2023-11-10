@@ -78,6 +78,15 @@ async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: stri
 	return "success"
 }
 
+async function makeDir(sandbox: Sandbox, path: string): Promise<string> {
+	try {
+		await sandbox.filesystem.makeDir(path)
+		return "success"
+	} catch (e) {
+		return `Error: ${e.message}}`
+	}
+}
+
 async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
 	try {
 		return (await sandbox.filesystem.list(path)).map(file => file.isDir ? `dir: ${file.name}` : file.name).toString()
@@ -141,7 +150,9 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 		} else if (toolName === 'saveCodeToFile') {
 			output = await saveCodeToFile(sandbox,  args.code, args.filename)
 		} else if (toolName === 'listFiles') {
-			output = await listFiles(sandbox,  args.path)
+			output = await listFiles(sandbox, args.path)
+		} else if (toolName === 'makeDir') {
+			output = await makeDir(sandbox,  args.path)
 		} else if (toolName === 'readFile') {
 			output = await readFile(sandbox,  args.path)
 		} else {
