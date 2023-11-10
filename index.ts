@@ -66,7 +66,11 @@ async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
 }
 
 async function readFile(sandbox: Sandbox, path: string): Promise<string> {
-	return await sandbox.filesystem.read(path)
+	try {
+		return await sandbox.filesystem.read(path)
+	} catch (e) {
+		return `File not found: ${path}`
+	}
 }
 
 function getAssistant() {
