@@ -23,51 +23,27 @@ async function loginWithGH(sandbox) {
 }
 
 async function cloneRepo(sandbox, repoURL) {
-	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}` })
+	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}`, onStderr: console.log })
 	await process.wait()
 
-	if (process.output.stderr) {
-		throw new Error(process.output.stderr)
-	}
-
-	const processCreateBranch = await sandbox.process.start({ cmd: 'git checkout -b ai-developer', cwd: repoDirPath })
+	const processCreateBranch = await sandbox.process.start({ cmd: 'git checkout -b ai-developer', cwd: repoDirPath, onStderr: console.log })
 	await processCreateBranch.wait()
-
-	if (processCreateBranch.output.stderr) {
-		throw new Error(processCreateBranch.output.stderr)
-	}
 }
 
 async function makeCommit(sandbox, message) {
-	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath })
+	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath, onStderr: console.log })
 	await processAdd.wait()
 
-	if (processAdd.output.stderr) {
-		throw new Error(processAdd.output.stderr)
-	}
-
-	const processCommit = await sandbox.process.start({ cmd: `git commit -m "${message}"`, cwd: repoDirPath })
+	const processCommit = await sandbox.process.start({ cmd: `git commit -m "${message}"`, cwd: repoDirPath, onStderr: console.log })
 	await processCommit.wait()
-
-	if (processCommit.output.stderr) {
-		throw new Error(processCommit.output.stderr)
-	}
 }
 
 async function makePullRequest(sandbox, title) {
-	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath })
+	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath, onStderr: console.log })
 	await processPush.wait()
 
-	if (processPush.output.stderr) {
-		throw new Error(processPush.output.stderr)
-	}
-
-	const processPR = await sandbox.process.start({ cmd: `gh pr create --title "${title}"`, cwd: repoDirPath })
+	const processPR = await sandbox.process.start({ cmd: `gh pr create --title "${title}"`, cwd: repoDirPath, onStderr: console.log })
 	await processPR.wait()
-
-	if (processPR.output.stderr) {
-		throw new Error(processPR.output.stderr)
-	}
 }
 
 function getPathToRepo(relativePath) {
