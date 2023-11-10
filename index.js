@@ -6,15 +6,15 @@ import OpenAI from 'openai'
 const openai = new OpenAI()
 // const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
 
-function cloneRepo(repoURL) {
+async function cloneRepo(repoURL) {
 	console.log('Clone repo')
 }
 
-function makeCommit(message) {
+async function makeCommit(message) {
 	console.log('Make commit')
 }
 
-function makePullRequest() {
+async function makePullRequest() {
 	console.log('Make pull request')
 }
 
