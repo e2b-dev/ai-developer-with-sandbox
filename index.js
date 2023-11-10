@@ -1,10 +1,18 @@
-import 'dotenv/config'
 import { Sandbox } from '@e2b/sdk'
 import OpenAI from 'openai'
+import 'dotenv/config'
+import promptSync from 'prompt-sync'
+const prompt = promptSync({ sigint: true })
 
+import readline from 'node:readline'
 
 const openai = new OpenAI()
 // const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
+
+const rl = readline.createInterface({
+	input: process.stdin,
+	output: process.stdout
+})
 
 async function cloneRepo(sandbox, repoURL) {
 	const process = await sandbox.process.start(`git clone ${repoURL}`)
@@ -54,9 +62,21 @@ function createThread(repoURL, task) {
 	});
 }
 
+function initChat() {
+	const repoURL = prompt('Enter repo URL with which you want the AI developer to work: ')
+	const task = prompt('Enter the task you want the AI developer to work on: ')
+	return { repoURL, task }
+}
+
 async function main() {
 	const assistant = await getAssistant()
 	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
+
+	// Start terminal session with user
+	const { repoURL, task } = initChat()
+	const thread = await createThread(repoURL, task)
+
+
 	// Docs https://platform.openai.com/docs/assistants/how-it-works/managing-threads-and-messages
 
 
@@ -68,8 +88,8 @@ async function main() {
 	//   - When a tool returns an output send submit it back to the threads.runs like mentioned here
 	//   - https://platform.openai.com/docs/assistants/tools/submitting-functions-outputs
 
-  console.log(assistant)
 	await sandbox.close()
 }
+
 
 await main()

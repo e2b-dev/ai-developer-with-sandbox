@@ -30,6 +30,7 @@
   "dependencies": {
     "@e2b/sdk": "^0.8.6",
     "dotenv": "^16.3.1",
-    "openai": "^4.17.3"
+    "openai": "^4.17.3",
+    "prompt-sync": "^4.2.0"
   }
 }
