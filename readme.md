@@ -4,7 +4,7 @@
 </p>
 
 <h3>
-AI Developer is an AI agent that's using [custom E2B Sandbox](https://e2b.dev/docs)
+AI Developer is an AI agent that's using <a href="https://e2b.dev/docs">custom E2B Sandbox</a>
 </h3>
 
 The E2B sandbox is used as a secure cloud environment for an AI agent to perfowm long-running tasks, run code in a secure cloud environment, and use the same tools as a human developer would use.
