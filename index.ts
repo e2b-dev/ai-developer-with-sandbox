@@ -4,6 +4,7 @@ import OpenAI from 'openai'
 import path from 'path'
 import prompts from 'prompts'
 import { Sandbox } from '@e2b/sdk'
+import { RunSubmitToolOutputsParams } from 'openai/resources/beta/threads/runs/runs'
 
 const openai = new OpenAI()
 
@@ -84,7 +85,7 @@ function createThread(repoURL: string, task: string) {
 				"content": `Pull this repo: '${repoURL}'. Then carefully plan this task and start working on it: ${task}`,
 			}
 		]
-	});
+	})
 }
 
 async function initChat(): Promise<{ repoURL: string, task: string }> {
@@ -102,32 +103,38 @@ async function initChat(): Promise<{ repoURL: string, task: string }> {
 	return { repoURL, task }
 }
 
-async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
+async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.Beta.Threads.Runs.Run.RequiredAction) {
 	const toolCals = requiredAction.submit_tool_outputs.tool_calls
-	const outputs = []
+	const outputs: RunSubmitToolOutputsParams.ToolOutput[] = []
+
 	for (const toolCall of toolCals) {
-		let output = null
-		const toolName = toolCall.function.name
-		if (toolName === 'makeCommit') {
-			await makeCommit(sandbox,  toolCall.function.arguments[0])
-		} else if (toolName === 'makePullRequest') {
-			await makePullRequest(sandbox,  toolCall.function.arguments[0])
-		} else if (toolName === 'saveCodeToFile') {
-			await saveCodeToFile(sandbox,  toolCall.function.arguments[0],  toolCall.function.arguments[1])
-		} else if (toolName === 'listFiles') {
-			output = await listFiles(sandbox,  toolCall.function.arguments[0])
-		} else if (toolName === 'readFile') {
-			output = await readFile(sandbox,  toolCall.function.arguments[0])
-		} else {
-			throw new Error(`Unknown tool: ${toolName}`)
-		}
-		if (output) {
-			outputs.push({
-				toolCallId: toolCall.id,
-				output: output
-			})
+		switch (toolCall.function.name) {
+			case 'makeCommit':
+				await makeCommit(sandbox, toolCall.function.arguments[0])
+				break
+			case 'makePullRequest':
+				await makePullRequest(sandbox, toolCall.function.arguments[0])
+			  break
+			case 'saveCodeToFile':
+				await saveCodeToFile(sandbox, toolCall.function.arguments[0], toolCall.function.arguments[1])
+				break
+			case 'listFiles':
+				outputs.push({
+					tool_call_id: toolCall.id,
+					output: await listFiles(sandbox, toolCall.function.arguments[0])
+				})
+				break
+			case 'readFile':
+				outputs.push({
+					tool_call_id: toolCall.id,
+					output: await readFile(sandbox, toolCall.function.arguments[0])
+				})
+			break
+			default:
+				throw new Error(`Unknown tool: ${toolCall.function.name}`)
 		}
 	}
+
 	return outputs
 }
 
@@ -161,8 +168,18 @@ while(true) {
 	}
 	else if (run.status === 'requires_action') {
 		console.log(run.required_action)
+
+		if (!run.required_action) { 
+			console.log('No required action')
+			continue
+		}
+
 		const outputs = await processAssistantMessage(sandbox, run.required_action)
-		await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, outputs)
+
+		await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, {
+			tool_outputs: outputs,
+		})
+
 	} else if (run.status === 'queued' || run.status === 'in_progress') {
 		continue
 	} else {
