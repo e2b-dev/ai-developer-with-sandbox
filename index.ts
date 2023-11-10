@@ -89,10 +89,9 @@ async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: stri
 	try {
 		const dir = path.dirname(absolutePath)
 
-		const process = await sandbox.process.start({cmd: `mkdir -p ${dir}`, onStderr: log})
-		await process.wait()
-
+		await sandbox.filesystem.makeDir(dir)
 		await sandbox.filesystem.write(absolutePath, code)
+
 		return "success"
 	} catch (e) {
 		return `Error: ${e.message}}`
