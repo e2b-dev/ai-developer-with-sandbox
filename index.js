@@ -139,12 +139,12 @@ async function processAssistantMessage(sandbox, requiredAction) {
 
 async function main() {
 	const assistant = await getAssistant()
-	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
-	await loginWithGH(sandbox)
+	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: console.log, onStderr: console.error })
+	// await loginWithGH(sandbox)
 
 	const { repoURL, task } = initChat()
 
-	await cloneRepo(sandbox, repoURL)
+	// await cloneRepo(sandbox, repoURL)
 	const thread = await createThread(repoURL, task)
 
 	const run = await openai.beta.threads.runs.create(
@@ -153,7 +153,9 @@ async function main() {
 			assistant_id: assistant.id,
 		}
 	)
-	console.log(run)
+
+	const runSteps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
+	console.log(runSteps)
 
 	await sandbox.close()
 }
