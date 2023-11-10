@@ -1,4 +1,4 @@
-# AI Developer With Cloud Sandbox powered by GPT-4-Turbo
+# AI Developer powered by E2B Sandbox, GPT-4-Turbo & OpenAI's AI Assistant API
 <p align="center">
   <img width="100" src="/img/logo-circle.png" alt="e2b logo">
 </p>
@@ -28,7 +28,7 @@ The custom E2B sandbox environment is defined in the [`e2b.Dockerfile`](./e2b.Do
 1. Add your OpenAI API key to `.env`
 1. Get E2B API Key at [https://e2b.dev/docs/getting-started/api-key](https://e2b.dev/docs/getting-started/api-key)
     - Save it to `.env`
-1. Run `npm run create-ai-assistant`
+1. Run `npm run create-ai-assistant` to create the AI assistant using OpenAI's new Assistant API
 1. Grab the assistant ID you just created here [https://platform.openai.com/assistants](https://platform.openai.com/assistants)
     - Save the assistant ID to `.env`
 1. Create classic GitHub token [here](https://github.com/settings/tokens) and give it the `read:org` and `repo` permissions
