@@ -1,20 +1,23 @@
 import 'dotenv/config'
+
 import OpenAI from 'openai'
 import path from 'path'
 import prompts from 'prompts'
 import { Sandbox } from '@e2b/sdk'
-// import { RunSubmitToolOutputsParams } from 'openai/resources/beta/threads/runs/runs'
 import { nanoid } from 'nanoid'
-
+import { RunSubmitToolOutputsParams } from "openai/resources/beta/threads/runs/runs"
+import chalk from 'chalk'
 
 const openai = new OpenAI()
+
+const orange = chalk.hex('#FFB766')
 
 const GIT_USERNAME = process.env.GIT_USERNAME!
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
 const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
 const gitEmail = 'e2b-assistant[bot]@users.noreply.github.com'
-const gitName = 'e2b-assisntant[bot]'
+const gitName = 'e2b-assistant[bot]'
 
 const rootdir = '/home/user'
 const repoDir = 'repo'
@@ -26,11 +29,15 @@ function sleep(time: number) {
 	return new Promise((resolve) => setTimeout(resolve, time))
 }
 
-function log(output: { line: string }) {
-	console.log(output.line)
+function onLog(output: { line: string }) {
+	sandboxLog(output.line)
 }
 
-async function loginWithGH(sandbox: Sandbox, repo: string): Promise<string> {
+function sandboxLog(line: string) {
+	console.log(`${orange('[Sandbox]')} ${line}`)
+}
+
+async function loginWithGH(sandbox: Sandbox): Promise<string> {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
 	const process = await sandbox.process.start({ cmd: `gh auth login --with-token < /home/user/.github-token &&
 git config --global user.email "${gitEmail}" &&
@@ -45,29 +52,28 @@ git config --global push.autoSetupRemote true`})
 	return "success"
 }
 
-async function cloneRepo(sandbox: Sandbox, repoURL: string): Promise<string> {
-	const process = await sandbox.process.start({ cmd: `gh repo clone ${repoURL} ${repoDirPath}`, onStderr: log })
+async function cloneRepo(sandbox: Sandbox, repo: string) {
+	const process = await sandbox.process.start({ cmd: `gh repo clone ${repo} ${repoDirPath}` })
 	await process.wait()
 
-	const processCreateBranch = await sandbox.process.start({ cmd: `git checkout -b ai-developer-${branchID}`, cwd: repoDirPath, onStderr: log })
+	const processCreateBranch = await sandbox.process.start({ cmd: `git checkout -b ai-developer-${branchID}`, cwd: repoDirPath })
 	await processCreateBranch.wait()
 
-
-	const setRemote = await sandbox.process.start({ cmd: `git remote set-url origin https://${GIT_USERNAME}:${GITHUB_TOKEN}@github.com/${repoURL}.git`, cwd: repoDirPath, onStderr: log })
+	const setRemote = await sandbox.process.start({ cmd: `git remote set-url origin https://${GIT_USERNAME}:${GITHUB_TOKEN}@github.com/${repo}.git`, cwd: repoDirPath })
 	await setRemote.wait()
 
 	return "success"
 }
 
 async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
+	sandboxLog(`Making commit with message ${message}`)
 	try {
-		const processAdd = await sandbox.process.start({cmd: 'git add .', cwd: repoDirPath, onStderr: log})
+		const processAdd = await sandbox.process.start({cmd: 'git add .', cwd: repoDirPath })
 		await processAdd.wait()
 
 		const processCommit = await sandbox.process.start({
 			cmd: `git commit -m "${message}"`,
 			cwd: repoDirPath,
-			onStderr: log
 		})
 		await processCommit.wait()
 		return "success"
@@ -76,15 +82,15 @@ async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
 	}
 }
 
-async function makePullRequest(sandbox: Sandbox, title: string, body: string): Promise<string> {
+async function makePullRequest(sandbox: Sandbox, title: string): Promise<string> {
+	sandboxLog(`Making pull request with title ${title}`)
 	try {
-		const processPush = await sandbox.process.start({ cmd: `git push -u origin ai-developer-${branchID}`, cwd: repoDirPath, onStderr: log })
+		const processPush = await sandbox.process.start({ cmd: `git push -u origin ai-developer-${branchID}`, cwd: repoDirPath })
 		await processPush.wait()
 
 		const processPR = await sandbox.process.start({
 			cmd: `gh pr create --title "${title}" --fill`,
 			cwd: repoDirPath,
-			onStderr: log
 		})
 		await processPR.wait()
 		return "success"
@@ -93,8 +99,8 @@ async function makePullRequest(sandbox: Sandbox, title: string, body: string): P
 	}
 }
 
-
 async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: string): Promise<string> {
+	sandboxLog(`Saving code to file ${absolutePath}`)
 	try {
 		const dir = path.dirname(absolutePath)
 
@@ -108,8 +114,10 @@ async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: stri
 }
 
 async function makeDir(sandbox: Sandbox, path: string): Promise<string> {
+	sandboxLog(`Creating dir ${path}`)
 	try {
 		await sandbox.filesystem.makeDir(path)
+
 		return "success"
 	} catch (e) {
 		return `Error: ${e.message}}`
@@ -117,6 +125,7 @@ async function makeDir(sandbox: Sandbox, path: string): Promise<string> {
 }
 
 async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
+	sandboxLog(`Listing files in ${path}`)
 	try {
 		return (await sandbox.filesystem.list(path)).map(file => file.isDir ? `dir: ${file.name}` : file.name).toString()
 	} catch (e) {
@@ -125,10 +134,11 @@ async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
 }
 
 async function readFile(sandbox: Sandbox, path: string): Promise<string> {
+	sandboxLog(`Reading file ${path}`)
 	try {
 		return await sandbox.filesystem.read(path)
 	} catch (e) {
-		return `File not found: ${path}`
+		return `Error: ${e.message}}`
 	}
 }
 
@@ -164,38 +174,39 @@ async function initChat(): Promise<{ repoName: string, task: string }> {
 	return { repoName, task }
 }
 
-async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
+async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.Beta.Threads.Runs.Run.RequiredAction) {
 	const toolCalls = requiredAction.submit_tool_outputs.tool_calls
-	console.log(toolCalls)
-	const outputs = []
+  const outputs: RunSubmitToolOutputsParams.ToolOutput[] = []
+	
 	for (const toolCall of toolCalls) {
-		console.log(toolCall.function)
-		const args = JSON.parse(toolCall.function.arguments)
-		console.log('ARGS:\n',args)
 		let output: any
 		const toolName = toolCall.function.name
+		const args = JSON.parse(toolCall.function.arguments)
+
+		console.log(`Calling tool "${toolName}" with args ${args}`)
+
 		if (toolName === 'makeCommit') {
-			output = await makeCommit(sandbox,  args.message)
+			output = await makeCommit(sandbox, args.message)
 		} else if (toolName === 'makePullRequest') {
-			output = await makePullRequest(sandbox,  args.title, "body")
+			output = await makePullRequest(sandbox,  args.title)
 		} else if (toolName === 'saveCodeToFile') {
-			output = await saveCodeToFile(sandbox,  args.code, args.filename)
+			output = await saveCodeToFile(sandbox, args.code, args.filename)
 		} else if (toolName === 'listFiles') {
 			output = await listFiles(sandbox, args.path)
 		} else if (toolName === 'makeDir') {
-			output = await makeDir(sandbox,  args.path)
+			output = await makeDir(sandbox, args.path)
 		} else if (toolName === 'readFile') {
-			output = await readFile(sandbox,  args.path)
+			output = await readFile(sandbox, args.path)
 		} else {
 			throw new Error(`Unknown tool: ${toolName}`)
 		}
 
-		console.log('OUTPUT:\n',output)
+		console.log(`Tool ${toolCall.function.name} output: ${output}`)
 
 		if (output) {
 			outputs.push({
 				tool_call_id: toolCall.id,
-				output: output
+				output,
 			})
 		}
 	}
@@ -207,21 +218,16 @@ const { repoName, task } = await initChat()
 // const task = "Write a function that takes a string and returns the string reversed."
 
 const assistant = await getAssistant()
-const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: log, onStderr: log })
+const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: onLog, onStderr: onLog })
 // const repoURL = "mlejva/nextjs-todo-app"
-await loginWithGH(sandbox, repoName)
+await loginWithGH(sandbox)
 
 // Start terminal session with user
 
 await cloneRepo(sandbox, repoName)
 const thread = await createThread(repoName, task)
 
-let run = await openai.beta.threads.runs.create(
-	thread.id,
-	{
-		assistant_id: assistant.id,
-	}
-)
+let run = await openai.beta.threads.runs.create(thread.id, { assistant_id: assistant.id })
 
 let counter = 0
 while (true) {
@@ -260,12 +266,9 @@ while (true) {
 	} else {
 		throw new Error(`Unknown status: ${run.status}`)
 	}
-
 }
 
-const messages= await openai.beta.threads.messages.list(
-	thread.id,
-);
+const messages= await openai.beta.threads.messages.list(thread.id)
 console.log('messages', messages.data.map((message) => message.content))
 
 await sandbox.close()
