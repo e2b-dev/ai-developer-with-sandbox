@@ -15,7 +15,7 @@ const repoDirPath = path.join(rootdir, repoDir)
 
 async function loginWithGH(sandbox) {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
-	const process = await sandbox.process.start('gh auth login --with-token < /home/user/.github-token')
+	const process = await sandbox.process.start({ cmd: 'gh auth login --with-token < /home/user/.github-token' })
 	await process.wait()
 
 	if (process.output.stderr) {
@@ -24,7 +24,7 @@ async function loginWithGH(sandbox) {
 }
 
 async function cloneRepo(sandbox, repoURL) {
-	const process = await sandbox.process.start(`git clone ${repoURL} ${repoDirPath}`)
+	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}` })
 	await process.wait()
 
 	if (process.output.stderr) {
