@@ -3,7 +3,6 @@ import OpenAI from 'openai'
 import path from 'path'
 import prompts from 'prompts'
 import { Sandbox } from '@e2b/sdk'
-// import { RunSubmitToolOutputsParams } from 'openai/resources/beta/threads/runs/runs'
 import { nanoid } from 'nanoid'
 
 
@@ -27,10 +26,10 @@ function sleep(time: number) {
 }
 
 function log(output: { line: string }) {
-	console.log(output.line)
+	console.log(`[SANDBOX] ${output.line}`)
 }
 
-async function loginWithGH(sandbox: Sandbox, repo: string): Promise<string> {
+async function loginWithGH(sandbox: Sandbox, repo: string) {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
 	const process = await sandbox.process.start({ cmd: `gh auth login --with-token < /home/user/.github-token &&
 git config --global user.email "${gitEmail}" &&
@@ -45,8 +44,8 @@ git config --global push.autoSetupRemote true`})
 	return "success"
 }
 
-async function cloneRepo(sandbox: Sandbox, repoURL: string): Promise<string> {
-	const process = await sandbox.process.start({ cmd: `gh repo clone ${repoURL} ${repoDirPath}`, onStderr: log })
+async function cloneRepo(sandbox: Sandbox, repo: string) {
+	const process = await sandbox.process.start({ cmd: `gh repo clone ${repo} ${repoDirPath}`, onStderr: log })
 	await process.wait()
 
 	const processCreateBranch = await sandbox.process.start({ cmd: `git checkout -b ai-developer-${branchID}`, cwd: repoDirPath, onStderr: log })
@@ -128,7 +127,7 @@ async function readFile(sandbox: Sandbox, path: string): Promise<string> {
 	try {
 		return await sandbox.filesystem.read(path)
 	} catch (e) {
-		return `File not found: ${path}`
+		return `Error: ${e.message}}`
 	}
 }
 
@@ -166,12 +165,10 @@ async function initChat(): Promise<{ repoName: string, task: string }> {
 
 async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 	const toolCalls = requiredAction.submit_tool_outputs.tool_calls
-	console.log(toolCalls)
+
 	const outputs = []
 	for (const toolCall of toolCalls) {
-		console.log(toolCall.function)
 		const args = JSON.parse(toolCall.function.arguments)
-		console.log('ARGS:\n',args)
 		let output: any
 		const toolName = toolCall.function.name
 		if (toolName === 'makeCommit') {
@@ -190,14 +187,10 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 			throw new Error(`Unknown tool: ${toolName}`)
 		}
 
-		console.log('OUTPUT:\n',output)
-
-		if (output) {
-			outputs.push({
-				tool_call_id: toolCall.id,
-				output: output
-			})
-		}
+		outputs.push({
+			tool_call_id: toolCall.id,
+			output: output
+		})
 	}
 
 	return outputs
