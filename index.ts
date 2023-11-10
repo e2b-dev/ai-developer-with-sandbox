@@ -52,16 +52,14 @@ git config --global push.autoSetupRemote true`})
 	return "success"
 }
 
-async function cloneRepo(sandbox: Sandbox, repoURL: string): Promise<string> {
-	sandboxLog(`Cloning repo ${repoURL}`)
-	const process = await sandbox.process.start({ cmd: `gh repo clone ${repoURL} ${repoDirPath}` })
+async function cloneRepo(sandbox: Sandbox, repo: string) {
+	const process = await sandbox.process.start({ cmd: `gh repo clone ${repo} ${repoDirPath}` })
 	await process.wait()
 
 	const processCreateBranch = await sandbox.process.start({ cmd: `git checkout -b ai-developer-${branchID}`, cwd: repoDirPath })
 	await processCreateBranch.wait()
 
-
-	const setRemote = await sandbox.process.start({ cmd: `git remote set-url origin https://${GIT_USERNAME}:${GITHUB_TOKEN}@github.com/${repoURL}.git`, cwd: repoDirPath })
+	const setRemote = await sandbox.process.start({ cmd: `git remote set-url origin https://${GIT_USERNAME}:${GITHUB_TOKEN}@github.com/${repo}.git`, cwd: repoDirPath })
 	await setRemote.wait()
 
 	return "success"
@@ -140,7 +138,7 @@ async function readFile(sandbox: Sandbox, path: string): Promise<string> {
 	try {
 		return await sandbox.filesystem.read(path)
 	} catch (e) {
-		return `File not found: ${path}`
+		return `Error: ${e.message}}`
 	}
 }
 
@@ -181,15 +179,12 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
   const outputs: RunSubmitToolOutputsParams.ToolOutput[] = []
 	
 	for (const toolCall of toolCalls) {
-		console.log(`Calling tool ${toolCall.function.name}`)
-
 		let output: any
-		
+		const toolName = toolCall.function.name
 		const args = JSON.parse(toolCall.function.arguments)
 
-		console.log('ARGS:\n',args)
+		console.log(`Calling tool "${toolName}" with args ${args}`)
 
-		const toolName = toolCall.function.name
 		if (toolName === 'makeCommit') {
 			output = await makeCommit(sandbox, args.message)
 		} else if (toolName === 'makePullRequest') {
