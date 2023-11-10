@@ -69,12 +69,11 @@ async function makePullRequest(sandbox: Sandbox, title: string, body: string): P
 
 
 async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: string): Promise<string> {
-	// const folders = absolutePath.split('/')
-	// const restPath = path.relative(repoDirPath, absolutePath)
-	// for (let i = 1; i < folders.length; i++) {
-	// 	const folder = folders.slice(0, i).join('/')
-	// 	await sandbox.filesystem.makeDir(folder)
-	// }
+	const dir = path.dirname(absolutePath)
+
+	const process = await sandbox.process.start({ cmd: `mkdir -p ${dir}`, onStderr: log })
+	await process.wait()
+
 	await sandbox.filesystem.write(absolutePath, code)
 	return "success"
 }
