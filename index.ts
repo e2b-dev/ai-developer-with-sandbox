@@ -28,7 +28,7 @@ const rootdir = '/home/user'
 const repoDir = 'repo'
 const repoDirPath = path.join(rootdir, repoDir)
 
-const branchID = customAlphabet('0123456789abcdefghijklmnoprstuvxyz', 6)()
+const branchID = customAlphabet('abcdefghijklmnopqrstuvwxyz1234567890', 6)()
 
 function sleep(time: number) {
 	return new Promise((resolve) => setTimeout(resolve, time))
