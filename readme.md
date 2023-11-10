@@ -9,9 +9,16 @@
 
 ---
 
-The AI developer can perform tasks on your GitHub repository including reading files, writing code, making pull requests, pulling GitHub repository, and responding to your feedback to the agent's previous work.
+The AI developer is an AI agent that perform user's tasks in the user's GitHub repository including:
+- reading files
+- writing code
+- making pull requests
+- pulling GitHub repository
+- responding to the user's feedback to the agent's previous work.
 
-The E2B sandbox is used as a secure cloud environment for an AI agent to perfowm long-running tasks, run code in a secure cloud environment, and use the same tools as a human developer would use.
+All agent's work is happening inside the [E2B sandbox](https://e2b.dev/docs).
+
+The E2B's sandboxes are isolated cloud environments made specifcially for AI apps and agents. Inside the sandbox AI agents perfowm long-running tasks, run code in a secure cloud environment, and use the same tools as a human developer would use.
 
 - Pull GitHub repository
 - Read files
