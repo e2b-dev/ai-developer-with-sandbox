@@ -1,22 +1,4 @@
 export const functions = [
-  // Clone repo
-  {
-    type: 'function',
-    function: {
-      name: "cloneRepo",
-      description: "Clone GitHub repository",
-      parameters: {
-        type: "object",
-        properties: {
-          repoURL: {
-            type: "string",
-            description: "The GitHub repository URL",
-          },
-        },
-      },
-      required: ["repoURL"],
-    },
-  },
   // Save code to file
   {
     type: 'function',
