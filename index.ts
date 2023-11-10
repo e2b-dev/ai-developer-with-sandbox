@@ -22,48 +22,53 @@ function log(output: { line: string }) {
 	console.log(output.line)
 }
 
-async function loginWithGH(sandbox: Sandbox): Promise<void> {
+async function loginWithGH(sandbox: Sandbox): Promise<string> {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
 	const process = await sandbox.process.start({ cmd: 'gh auth login --with-token < /home/user/.github-token' })
 	await process.wait()
 
 	if (process.output.stderr) {
-		throw new Error(process.output.stderr)
+		return `fail: ${process.output.stderr}`
 	}
+	return "success"
 }
 
-async function cloneRepo(sandbox: Sandbox, repoURL: string): Promise<void> {
+async function cloneRepo(sandbox: Sandbox, repoURL: string): Promise<string> {
 	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}`, onStderr: log })
 	await process.wait()
 
 	const processCreateBranch = await sandbox.process.start({ cmd: 'git checkout -b ai-developer', cwd: repoDirPath, onStderr: log })
 	await processCreateBranch.wait()
+	return "success"
 }
 
-async function makeCommit(sandbox: Sandbox, message: string): Promise<void> {
+async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
 	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath, onStderr: log })
 	await processAdd.wait()
 
 	const processCommit = await sandbox.process.start({ cmd: `git commit -m "${message}"`, cwd: repoDirPath, onStderr: log })
 	await processCommit.wait()
+	return "success"
 }
 
-async function makePullRequest(sandbox: Sandbox, title: string, body: string): Promise<void> {
+async function makePullRequest(sandbox: Sandbox, title: string, body: string): Promise<string> {
 	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath, onStderr: log })
 	await processPush.wait()
 
 	const processPR = await sandbox.process.start({ cmd: `gh pr create --title "${title}"`, cwd: repoDirPath, onStderr: log })
 	await processPR.wait()
+	return "success"
 }
 
 
-async function saveCodeToFile(sandbox: Sandbox, code: string, path: string): Promise<void> {
+async function saveCodeToFile(sandbox: Sandbox, code: string, path: string): Promise<string> {
 	const folders = path.split('/')
 	for (let i = 1; i < folders.length; i++) {
 		const folder = folders.slice(0, i).join('/')
 		await sandbox.filesystem.makeDir(folder)
 	}
 	await sandbox.filesystem.write(path, code)
+	return "success"
 }
 
 async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
@@ -123,11 +128,11 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 		let output: any
 		const toolName = toolCall.function.name
 		if (toolName === 'makeCommit') {
-			await makeCommit(sandbox,  args.message)
+			output = await makeCommit(sandbox,  args.message)
 		} else if (toolName === 'makePullRequest') {
-			await makePullRequest(sandbox,  args.title, "body")
+			output = await makePullRequest(sandbox,  args.title, "body")
 		} else if (toolName === 'saveCodeToFile') {
-			await saveCodeToFile(sandbox,  args.code, args.filename)
+			output = await saveCodeToFile(sandbox,  args.code, args.filename)
 		} else if (toolName === 'listFiles') {
 			output = await listFiles(sandbox,  args.path)
 		} else if (toolName === 'readFile') {
