@@ -61,29 +61,29 @@ function initChat() {
 }
 
 async function processAssistantMessage(sandbox, requiredAction) {
-	const toolCals = requiredAction.sumbitToolOutpus.toolCalls
+	const toolCals = requiredAction.submit_tool_outputs.tool_calls
 	const outputs = []
 	for (const toolCall of toolCals) {
 		let output = null
 		const toolName = toolCall.function.name
 		if (toolName === 'cloneRepo') {
-			await cloneRepo(sandbox, toolCall.input.repoURL)
+			await cloneRepo(sandbox, toolCall.function.arguments[0])
 		} else if (toolName === 'makeCommit') {
-			await makeCommit(sandbox, toolCall.input.message)
+			await makeCommit(sandbox,  toolCall.function.arguments[0])
 		} else if (toolName === 'makePullRequest') {
-			await makePullRequest(sandbox, toolCall.input.title)
+			await makePullRequest(sandbox,  toolCall.function.arguments[0])
 		} else if (toolName === 'saveCodeToFile') {
-			await saveCodeToFile(sandbox, toolCall.input.code, toolCall.input.filename)
+			await saveCodeToFile(sandbox,  toolCall.function.arguments[0],  toolCall.function.arguments[1])
 		} else if (toolName === 'listFiles') {
-			output = await listFiles(sandbox, toolCall.input.path)
+			output = await listFiles(sandbox,  toolCall.function.arguments[0])
 		} else if (toolName === 'readFile') {
-			output = await readFile(sandbox, toolCall.input.path)
+			output = await readFile(sandbox,  toolCall.function.arguments[0])
 		} else {
 			throw new Error(`Unknown tool: ${toolName}`)
 		}
 		if (output) {
 			outputs.push({
-				toolCallId: toolCall.toolCallId,
+				toolCallId: toolCall.id,
 				output: output
 			})
 		}
