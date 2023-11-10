@@ -15,6 +15,9 @@ const repoDirPath = path.join(rootdir, repoDir)
 function sleep(time) {
 	return new Promise((resolve) => setTimeout(resolve, time))
 }
+function log(output) {
+	console.log(output.line)
+}
 
 async function loginWithGH(sandbox) {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
@@ -27,51 +30,27 @@ async function loginWithGH(sandbox) {
 }
 
 async function cloneRepo(sandbox, repoURL) {
-	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}` })
+	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}`, onStderr: log })
 	await process.wait()
 
-	if (process.output.stderr) {
-		throw new Error(process.output.stderr)
-	}
-
-	const processCreateBranch = await sandbox.process.start({ cmd: 'git checkout -b ai-developer', cwd: repoDirPath })
+	const processCreateBranch = await sandbox.process.start({ cmd: 'git checkout -b ai-developer', cwd: repoDirPath, onStderr: log })
 	await processCreateBranch.wait()
-
-	if (processCreateBranch.output.stderr) {
-		throw new Error(processCreateBranch.output.stderr)
-	}
 }
 
 async function makeCommit(sandbox, message) {
-	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath })
+	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath, onStderr: log })
 	await processAdd.wait()
 
-	if (processAdd.output.stderr) {
-		throw new Error(processAdd.output.stderr)
-	}
-
-	const processCommit = await sandbox.process.start({ cmd: `git commit -m "${message}"`, cwd: repoDirPath })
+	const processCommit = await sandbox.process.start({ cmd: `git commit -m "${message}"`, cwd: repoDirPath, onStderr: log })
 	await processCommit.wait()
-
-	if (processCommit.output.stderr) {
-		throw new Error(processCommit.output.stderr)
-	}
 }
 
 async function makePullRequest(sandbox, title) {
-	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath })
+	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath, onStderr: log })
 	await processPush.wait()
 
-	if (processPush.output.stderr) {
-		throw new Error(processPush.output.stderr)
-	}
-
-	const processPR = await sandbox.process.start({ cmd: `gh pr create --title "${title}"`, cwd: repoDirPath })
+	const processPR = await sandbox.process.start({ cmd: `gh pr create --title "${title}"`, cwd: repoDirPath, onStderr: log })
 	await processPR.wait()
-
-	if (processPR.output.stderr) {
-		throw new Error(processPR.output.stderr)
-	}
 }
 
 function getPathToRepo(relativePath) {
@@ -172,27 +151,35 @@ async function main() {
 		}
 	)
 	console.log(run)
-
+		let counter = 0
 	while(true) {
+		counter++
+		console.log(counter)
 		await sleep(1000)
 		run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
-		console.log(run)
+		console.log(run.status)
 		if (run.status === 'completed') {
 			break
 		}
-		if (run.status === 'action_required') {
+		else if (run.status === 'requires_action') {
+			console.log(run.required_action)
 			const outputs = await processAssistantMessage(sandbox, run.required_action)
 			await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, outputs)
+		} else if (run.status === 'queued' || run.status === 'in_progress') {
+			continue
+		} else {
+			throw new Error(`Unknown status: ${run.status}`)
 		}
+
 	}
 
 	const steps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
-	const message = await openai.beta.threads.messages.retrieve(
+	const messages= await openai.beta.threads.messages.list(
 		thread.id,
-		steps.data[0].message_id
+
   );
 	console.log(steps.data)
-	console.log(message)
+	console.log(messages.data.map((message) => message.content.text))
 	// await openai.beta.threads.runs.update()
 
 	// const runSteps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
