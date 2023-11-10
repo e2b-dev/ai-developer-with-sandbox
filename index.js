@@ -20,14 +20,15 @@ function makePullRequest() {
 
 function saveCodeToFile(code, filename) {
 	console.log('Save code')
+
 }
 
-function listFiles(path) {
-	console.log('List files')
+function listFiles(sandbox, path) {
+	return sandbox.filesystem.read(path)
 }
 
-function readFile(path) {
-	console.log('Read file')
+function readFile(sandbox, path) {
+	return sandbox.filesystem.read(path)
 }
 
 function getAssistant() {
