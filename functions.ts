@@ -1,4 +1,4 @@
-import {AssistantCreateParams} from "openai/src/resources/beta/assistants/assistants";
+import { AssistantCreateParams } from "openai/src/resources/beta/assistants/assistants";
 
 export const functions: Array<
   | AssistantCreateParams.AssistantToolsCode
@@ -7,7 +7,7 @@ export const functions: Array<
 > = [
   // Save code to file
   {
-    type: 'function',
+    type: "function",
     function: {
       name: "saveCodeToFile",
       description: "Save code to file",
@@ -28,7 +28,7 @@ export const functions: Array<
   },
   // List files
   {
-    type: 'function',
+    type: "function",
     function: {
       name: "listFiles",
       description: "List files in a directory",
@@ -45,7 +45,7 @@ export const functions: Array<
   },
   // Make commit
   {
-    type: 'function',
+    type: "function",
     function: {
       name: "makeCommit",
       description: "Make a commit",
@@ -62,7 +62,7 @@ export const functions: Array<
   },
   // Make pull request
   {
-    type: 'function',
+    type: "function",
     function: {
       name: "makePullRequest",
       description: "Make a pull request",
@@ -83,7 +83,7 @@ export const functions: Array<
   },
   // Read file
   {
-    type: 'function',
+    type: "function",
     function: {
       name: "readFile",
       description: "Read a file",
@@ -98,4 +98,4 @@ export const functions: Array<
       },
     },
   },
-]
+];
