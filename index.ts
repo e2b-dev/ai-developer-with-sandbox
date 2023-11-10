@@ -181,9 +181,9 @@ while (true) {
 	run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
 	console.log(run.status)
 	if (run.status === 'completed') {
-		const messages= await openai.beta.threads.messages.list(thread.id)
-		messages.data.forEach(m => console.log(m.content))
-		// console.log('message', messages.data[0].content)
+		// const messages = await openai.beta.threads.messages.list(thread.id)
+		// messages.data.forEach(m => console.log(m.content))
+		console.log(messages.data[0].content)
 
 		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: ' ' })
 		await openai.beta.threads.messages.create(thread.id, {
