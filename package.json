@@ -25,6 +25,7 @@
   "contributors": [],
   "scripts": {
     "dev": "",
+    "create-ai-assistant": "tsx aiAssistant.ts",
     "start": "tsx index.ts"
   },
   "dependencies": {
