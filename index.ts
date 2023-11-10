@@ -178,12 +178,10 @@ async function initChat(): Promise<{ repoName: string, task: string }> {
 
 async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.Beta.Threads.Runs.Run.RequiredAction) {
 	const toolCalls = requiredAction.submit_tool_outputs.tool_calls
-	console.log(toolCalls)
-
   const outputs: RunSubmitToolOutputsParams.ToolOutput[] = []
 	
 	for (const toolCall of toolCalls) {
-		console.log(toolCall.function)
+		console.log(`Calling tool ${toolCall.function.name}`)
 
 		let output: any
 		
@@ -193,22 +191,22 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
 
 		const toolName = toolCall.function.name
 		if (toolName === 'makeCommit') {
-			output = await makeCommit(sandbox,  args.message)
+			output = await makeCommit(sandbox, args.message)
 		} else if (toolName === 'makePullRequest') {
 			output = await makePullRequest(sandbox,  args.title)
 		} else if (toolName === 'saveCodeToFile') {
-			output = await saveCodeToFile(sandbox,  args.code, args.filename)
+			output = await saveCodeToFile(sandbox, args.code, args.filename)
 		} else if (toolName === 'listFiles') {
 			output = await listFiles(sandbox, args.path)
 		} else if (toolName === 'makeDir') {
-			output = await makeDir(sandbox,  args.path)
+			output = await makeDir(sandbox, args.path)
 		} else if (toolName === 'readFile') {
-			output = await readFile(sandbox,  args.path)
+			output = await readFile(sandbox, args.path)
 		} else {
 			throw new Error(`Unknown tool: ${toolName}`)
 		}
 
-		console.log('OUTPUT:\n',output)
+		console.log(`Tool ${toolCall.function.name} output: ${output}`)
 
 		if (output) {
 			outputs.push({
@@ -234,12 +232,7 @@ await loginWithGH(sandbox)
 await cloneRepo(sandbox, repoName)
 const thread = await createThread(repoName, task)
 
-let run = await openai.beta.threads.runs.create(
-	thread.id,
-	{
-		assistant_id: assistant.id,
-	}
-)
+let run = await openai.beta.threads.runs.create(thread.id, { assistant_id: assistant.id })
 
 let counter = 0
 while (true) {
@@ -278,12 +271,9 @@ while (true) {
 	} else {
 		throw new Error(`Unknown status: ${run.status}`)
 	}
-
 }
 
-const messages= await openai.beta.threads.messages.list(
-	thread.id,
-);
+const messages= await openai.beta.threads.messages.list(thread.id)
 console.log('messages', messages.data.map((message) => message.content))
 
 await sandbox.close()
