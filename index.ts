@@ -7,8 +7,13 @@ import { Sandbox } from '@e2b/sdk'
 import { nanoid } from 'nanoid'
 import { RunSubmitToolOutputsParams } from "openai/resources/beta/threads/runs/runs"
 import chalk from 'chalk'
+import ora from 'ora';
+import { MessageContentText } from "openai/resources/beta/threads";
+
 
 const openai = new OpenAI()
+
+const spinner = ora('Waiting for assistant')
 
 const orange = chalk.hex('#FFB766')
 
@@ -37,6 +42,10 @@ function sandboxLog(line: string) {
 	console.log(`${orange('[Sandbox]')} ${line}`)
 }
 
+function assistantLog(line: string) {
+	console.log(`${chalk.blue('[Assistant]')} ${line}`)
+}
+
 async function loginWithGH(sandbox: Sandbox): Promise<string> {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
 	const process = await sandbox.process.start({ cmd: `gh auth login --with-token < /home/user/.github-token &&
@@ -53,6 +62,8 @@ git config --global push.autoSetupRemote true`})
 }
 
 async function cloneRepo(sandbox: Sandbox, repo: string) {
+	sandboxLog(`Cloning repo ${repo}`)
+
 	const process = await sandbox.process.start({ cmd: `gh repo clone ${repo} ${repoDirPath}` })
 	await process.wait()
 
@@ -183,7 +194,7 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
 		const toolName = toolCall.function.name
 		const args = JSON.parse(toolCall.function.arguments)
 
-		console.log(`Calling tool "${toolName}" with args ${args}`)
+		assistantLog(`Calling tool "${toolName}"`)
 
 		if (toolName === 'makeCommit') {
 			output = await makeCommit(sandbox, args.message)
@@ -201,7 +212,7 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
 			throw new Error(`Unknown tool: ${toolName}`)
 		}
 
-		console.log(`Tool ${toolCall.function.name} output: ${output}`)
+		assistantLog(`Tool "${toolName}" output: ${output}`)
 
 		if (output) {
 			outputs.push({
@@ -230,30 +241,39 @@ let run = await openai.beta.threads.runs.create(thread.id, { assistant_id: assis
 let counter = 0
 while (true) {
 	counter++
-	console.log(counter)
+	spinner.start()
 	await sleep(1000)
 	run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
-	console.log(run.status)
 	if (run.status === 'completed') {
+		spinner.stop()
 		const messages = await openai.beta.threads.messages.list(thread.id)
-		// messages.data.forEach(m => console.log(m.content))
-		console.log(messages.data[0].content)
+		const textMessages = messages.data[0].content.filter(message => message.type === 'text') as MessageContentText[]
+		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: `${textMessages[0].text.value}If you want to exit write "exit", otherwise write your response:\n` })
+		if (userResponse === 'exit') {
+			break
+		}
+		spinner.start()
 
-		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: ' ' })
 		await openai.beta.threads.messages.create(thread.id, {
 			role: 'user',
 			content: userResponse as string,
 		})
+
+		run = await openai.beta.threads.runs.create(thread.id, {
+			assistant_id: assistant.id,
+		})
 	}
 	else if (run.status === 'requires_action') {
-		console.log(run.required_action)
+		spinner.stop()
 
 		if (!run.required_action) {
-			console.log('No required action')
+			assistantLog('No required action')
 			continue
 		}
 
 		const outputs = await processAssistantMessage(sandbox, run.required_action)
+
+		spinner.start()
 
 		await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, {
 			tool_outputs: outputs,
@@ -265,8 +285,5 @@ while (true) {
 		throw new Error(`Unknown status: ${run.status}`)
 	}
 }
-
-const messages= await openai.beta.threads.messages.list(thread.id)
-console.log('messages', messages.data.map((message) => message.content))
 
 await sandbox.close()
