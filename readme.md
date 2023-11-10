@@ -1,4 +1,4 @@
-# AI Developer powered by E2B Sandbox, GPT-4-Turbo & OpenAI's AI Assistant API
+# AI Developer GPT-4-Turbo & OpenAI's AI Assistant API
 <p align="center">
   <img width="100" src="/img/logo-circle.png" alt="e2b logo">
 </p>
