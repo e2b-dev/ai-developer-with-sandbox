@@ -52,7 +52,7 @@ async function cloneRepo(sandbox: Sandbox, repo: string) {
 	await processCreateBranch.wait()
 
 
-	const setRemote = await sandbox.process.start({ cmd: `git remote set-url origin https://${GIT_USERNAME}:${GITHUB_TOKEN}@github.com/${repoURL}.git`, cwd: repoDirPath, onStderr: log })
+	const setRemote = await sandbox.process.start({ cmd: `git remote set-url origin https://${GIT_USERNAME}:${GITHUB_TOKEN}@github.com/${repo}.git`, cwd: repoDirPath, onStderr: log })
 	await setRemote.wait()
 
 	return "success"
