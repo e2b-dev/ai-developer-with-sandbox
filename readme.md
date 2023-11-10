@@ -3,9 +3,14 @@
   <img width="100" src="/img/logo-circle.png" alt="e2b logo">
 </p>
 
-<h3>
-AI Developer is an AI agent that's using <a href="https://e2b.dev/docs">custom E2B Sandbox</a>
+<h3 align="center">
+  AI Developer is an AI agent powered by GPT-4-Turbo that's using <a href="https://e2b.dev/docs">custom E2B Sandbox</a>
 </h3>
+
+---
+
+
+The AI developer can perform tasks on your GitHub repository including reading files, making pull requests, pulling GitHub repository, and responding to your feedback to the agent's previous work.
 
 The E2B sandbox is used as a secure cloud environment for an AI agent to perfowm long-running tasks, run code in a secure cloud environment, and use the same tools as a human developer would use.
 
