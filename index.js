@@ -56,8 +56,6 @@ async function main() {
 	// TODO: Implement tools
 	//   - When a tool returns an output send submit it back to the threads.runs like mentioned here
 	//   - https://platform.openai.com/docs/assistants/tools/submitting-functions-outputs
-	//
-	// TODO: Create custom E2B sandbox "ai-developer-sandbox" and make it public
 
   console.log(assistant)
 	await sandbox.close()
