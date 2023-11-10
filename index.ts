@@ -8,6 +8,8 @@ import { nanoid } from 'nanoid'
 import { RunSubmitToolOutputsParams } from "openai/resources/beta/threads/runs/runs"
 import chalk from 'chalk'
 import ora from 'ora';
+import { MessageContentText } from "openai/resources/beta/threads";
+
 
 const openai = new OpenAI()
 
@@ -186,7 +188,7 @@ async function initChat(): Promise<{ repoName: string, task: string }> {
 async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.Beta.Threads.Runs.Run.RequiredAction) {
 	const toolCalls = requiredAction.submit_tool_outputs.tool_calls
   const outputs: RunSubmitToolOutputsParams.ToolOutput[] = []
-	
+
 	for (const toolCall of toolCalls) {
 		let output: any
 		const toolName = toolCall.function.name
@@ -224,11 +226,9 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
 }
 
 const { repoName, task } = await initChat()
-// const task = "Write a function that takes a string and returns the string reversed."
 
 const assistant = await getAssistant()
 const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: onLog, onStderr: onLog })
-// const repoURL = "mlejva/nextjs-todo-app"
 await loginWithGH(sandbox)
 
 // Start terminal session with user
@@ -245,17 +245,27 @@ while (true) {
 	await sleep(1000)
 	run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
 	if (run.status === 'completed') {
+		spinner.stop()
 		const messages = await openai.beta.threads.messages.list(thread.id)
-		// messages.data.forEach(m => console.log(m.content))
-		// console.log(messages.data[0].content)
+		const textMessages = messages.data[0].content.filter(message => message.type === 'text') as MessageContentText[]
+		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: `${textMessages[0].text.value}If you want to exit write "exit", otherwise write your response:\n` })
+		if (userResponse === 'exit') {
+			break
+		}
+		spinner.start()
 
-		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: ' ' })
 		await openai.beta.threads.messages.create(thread.id, {
 			role: 'user',
 			content: userResponse as string,
 		})
-	} else if (run.status === 'requires_action') {
+
+		run = await openai.beta.threads.runs.create(thread.id, {
+			assistant_id: assistant.id,
+		})
+	}
+	else if (run.status === 'requires_action') {
 		spinner.stop()
+
 		if (!run.required_action) {
 			assistantLog('No required action')
 			continue
@@ -275,8 +285,5 @@ while (true) {
 		throw new Error(`Unknown status: ${run.status}`)
 	}
 }
-
-const messages= await openai.beta.threads.messages.list(thread.id)
-console.log('messages', messages.data.map((message) => message.content))
 
 await sandbox.close()
