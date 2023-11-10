@@ -34,6 +34,17 @@ function getAssistant() {
 	return openai.beta.assistants.retrieve(process.env.AI_ASSISTANT_ID)
 }
 
+function createThread(repoURL, task) {
+	return openai.beta.threads.create({
+		messages: [
+			{
+				"role": "user",
+				"content": `Pull this repo: '${repoURL}'. Then carefully plan this task and start working on it: ${task}`,
+			}
+		]
+	});
+}
+
 async function main() {
 	const assistant = await getAssistant()
 	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
