@@ -7,6 +7,7 @@ import { RunSubmitToolOutputsParams } from 'openai/resources/beta/threads/runs/r
 
 const openai = new OpenAI()
 
+const GIT_USERNAME = process.env.GIT_USERNAME!
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
 const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
@@ -25,13 +26,13 @@ function log(output: { line: string }) {
 	console.log(output.line)
 }
 
-async function loginWithGH(sandbox: Sandbox): Promise<string> {
+async function loginWithGH(sandbox: Sandbox, repo: string): Promise<string> {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
-	const process = await sandbox.process.start({ cmd: `gh auth login --with-token < /home/user/.github-token && gh auth setup-git &&
-	git config --global push.autoSetupRemote true
-	`})
-	// git config --global user.email "${gitEmail}" &&
-	// git config --global user.name "${gitName}" &&
+	const process = await sandbox.process.start({ cmd: `gh auth login --with-token < /home/user/.github-token &&
+git config --global user.email "${gitEmail}" &&
+git config --global user.name "${gitName}" &&
+git config --global push.autoSetupRemote true &&
+git remote set-url origin https://${GIT_USERNAME}:${GITHUB_TOKEN}@github.com/${repo}.git` })
 	await process.wait()
 
 	if (process.output.stderr) {
@@ -73,7 +74,7 @@ async function makePullRequest(sandbox: Sandbox, title: string, body: string): P
 		await processPush.wait()
 
 		const processPR = await sandbox.process.start({
-			cmd: `gh pr create --title "${title} --body AAAAAAAAAAAAAAAAAAA --fill"`,
+			cmd: `gh pr create --title "${title} --fill"`,
 			cwd: repoDirPath,
 			onStderr: log
 		})
@@ -194,11 +195,11 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 
 const assistant = await getAssistant()
 const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: log, onStderr: log })
-await loginWithGH(sandbox)
+const repoURL = "mlejva/nextjs-todo-app"
+await loginWithGH(sandbox, repoURL)
 
 // Start terminal session with user
 // const { repoURL, task } = await initChat()
-const repoURL = "mlejva/nextjs-todo-app"
 const task = "Write a function that takes a string and returns the string reversed."
 await cloneRepo(sandbox, repoURL)
 const thread = await createThread(repoURL, task)
