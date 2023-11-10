@@ -12,6 +12,10 @@ const rootdir = '/code'
 const repoDir = 'repo'
 const repoDirPath = path.join(rootdir, repoDir)
 
+function sleep(time) {
+	return new Promise((resolve) => setTimeout(resolve, time))
+}
+
 async function loginWithGH(sandbox) {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
 	const process = await sandbox.process.start({ cmd: 'gh auth login --with-token < /home/user/.github-token' })
@@ -101,7 +105,7 @@ function createThread(repoURL, task) {
 	});
 }
 
-async function initChat() {	
+async function initChat() {
 	const questions = [
 		{
 			type: 'text',
@@ -120,6 +124,7 @@ async function initChat() {
 }
 
 async function processAssistantMessage(sandbox, requiredAction) {
+	console.log(requiredAction)
 	const toolCals = requiredAction.submit_tool_outputs.tool_calls
 	const outputs = []
 	for (const toolCall of toolCals) {
@@ -150,24 +155,48 @@ async function processAssistantMessage(sandbox, requiredAction) {
 
 async function main() {
 	const assistant = await getAssistant()
-	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: console.log, onStderr: console.error })
+	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: log, onStderr: log })
 	// await loginWithGH(sandbox)
 
 	// Start terminal session with user
-	const { repoURL, task } = await initChat()
-
+	// const { repoURL, task } = await initChat()
+	const repoURL = "	"
+	const task = "Write a function that takes a string and returns the string reversed."
 	// await cloneRepo(sandbox, repoURL)
 	const thread = await createThread(repoURL, task)
 
-	const run = await openai.beta.threads.runs.create(
+	let run = await openai.beta.threads.runs.create(
 		thread.id,
 		{
 			assistant_id: assistant.id,
 		}
 	)
+	console.log(run)
 
-	const runSteps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
-	console.log(runSteps)
+	while(true) {
+		await sleep(1000)
+		run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
+		console.log(run)
+		if (run.status === 'completed') {
+			break
+		}
+		if (run.status === 'action_required') {
+			const outputs = await processAssistantMessage(sandbox, run.required_action)
+			await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, outputs)
+		}
+	}
+
+	const steps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
+	const message = await openai.beta.threads.messages.retrieve(
+		thread.id,
+		steps.data[0].message_id
+  );
+	console.log(steps.data)
+	console.log(message)
+	// await openai.beta.threads.runs.update()
+
+	// const runSteps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
+	// console.log(runSteps)
 
 	await sandbox.close()
 }
