@@ -177,7 +177,7 @@ async function initChat(): Promise<{ repoName: string, task: string }> {
 async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.Beta.Threads.Runs.Run.RequiredAction) {
 	const toolCalls = requiredAction.submit_tool_outputs.tool_calls
   const outputs: RunSubmitToolOutputsParams.ToolOutput[] = []
-	
+
 	for (const toolCall of toolCalls) {
 		let output: any
 		const toolName = toolCall.function.name
@@ -215,11 +215,9 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
 }
 
 const { repoName, task } = await initChat()
-// const task = "Write a function that takes a string and returns the string reversed."
 
 const assistant = await getAssistant()
 const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: onLog, onStderr: onLog })
-// const repoURL = "mlejva/nextjs-todo-app"
 await loginWithGH(sandbox)
 
 // Start terminal session with user
