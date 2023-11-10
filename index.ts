@@ -4,7 +4,7 @@ import OpenAI from 'openai'
 import path from 'path'
 import prompts from 'prompts'
 import { Sandbox } from '@e2b/sdk'
-import { nanoid } from 'nanoid'
+import { customAlphabet } from 'nanoid'
 import { RunSubmitToolOutputsParams } from "openai/resources/beta/threads/runs/runs"
 import chalk from 'chalk'
 import ora from 'ora';
@@ -28,7 +28,7 @@ const rootdir = '/home/user'
 const repoDir = 'repo'
 const repoDirPath = path.join(rootdir, repoDir)
 
-const branchID = nanoid()
+const branchID = customAlphabet('0123456789abcdefghijklmnoprstuvxyz', 6)()
 
 function sleep(time: number) {
 	return new Promise((resolve) => setTimeout(resolve, time))
