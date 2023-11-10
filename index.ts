@@ -1,25 +1,28 @@
-import { Sandbox } from '@e2b/sdk'
+import 'dotenv/config'
+
 import OpenAI from 'openai'
 import path from 'path'
-import 'dotenv/config'
 import prompts from 'prompts'
+import { Sandbox } from '@e2b/sdk'
 
 const openai = new OpenAI()
 
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
+const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
 const rootdir = '/code'
 const repoDir = 'repo'
 const repoDirPath = path.join(rootdir, repoDir)
 
-function sleep(time) {
+function sleep(time: number) {
 	return new Promise((resolve) => setTimeout(resolve, time))
 }
-function log(output) {
+
+function log(output: { line: string }) {
 	console.log(output.line)
 }
 
-async function loginWithGH(sandbox) {
+async function loginWithGH(sandbox: Sandbox) {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
 	const process = await sandbox.process.start({ cmd: 'gh auth login --with-token < /home/user/.github-token' })
 	await process.wait()
@@ -29,7 +32,7 @@ async function loginWithGH(sandbox) {
 	}
 }
 
-async function cloneRepo(sandbox, repoURL) {
+async function cloneRepo(sandbox: Sandbox, repoURL: string) {
 	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}`, onStderr: log })
 	await process.wait()
 
@@ -37,7 +40,7 @@ async function cloneRepo(sandbox, repoURL) {
 	await processCreateBranch.wait()
 }
 
-async function makeCommit(sandbox, message) {
+async function makeCommit(sandbox: Sandbox, message: string) {
 	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath, onStderr: log })
 	await processAdd.wait()
 
@@ -45,7 +48,7 @@ async function makeCommit(sandbox, message) {
 	await processCommit.wait()
 }
 
-async function makePullRequest(sandbox, title) {
+async function makePullRequest(sandbox: Sandbox, title: string) {
 	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath, onStderr: log })
 	await processPush.wait()
 
@@ -53,27 +56,27 @@ async function makePullRequest(sandbox, title) {
 	await processPR.wait()
 }
 
-function getPathToRepo(relativePath) {
+function getPathToRepo(relativePath: string) {
 	return path.join(repoDirPath, relativePath)
 }
 
-async function saveCodeToFile(sandbox, code, relativePath) {
+async function saveCodeToFile(sandbox: Sandbox, code: string, relativePath: string) {
 	await sandbox.filesystem.write(getPathToRepo(relativePath), code)
 }
 
-async function listFiles(sandbox, relativePath) {
+async function listFiles(sandbox: Sandbox, relativePath: string) {
 	return await sandbox.filesystem.read(getPathToRepo(relativePath))
 }
 
-async function readFile(sandbox, relativePath) {
+async function readFile(sandbox: Sandbox, relativePath: string) {
 	return await sandbox.filesystem.read(getPathToRepo(relativePath))
 }
 
 function getAssistant() {
-	return openai.beta.assistants.retrieve(process.env.AI_ASSISTANT_ID)
+	return openai.beta.assistants.retrieve(AI_ASSISTANT_ID)
 }
 
-function createThread(repoURL, task) {
+function createThread(repoURL: string, task: string) {
 	return openai.beta.threads.create({
 		messages: [
 			{
@@ -84,26 +87,22 @@ function createThread(repoURL, task) {
 	});
 }
 
-async function initChat() {
-	const questions = [
-		{
-			type: 'text',
-			name: 'repoURL',
-			message: 'Enter repo URL with which you want the AI developer to work on:'
-		},
-		{
-			type: 'text',
-			name: 'task',
-			message: 'Enter the task you want the AI developer to work on:'
-		},
-	]
+async function initChat(): Promise<{ repoURL: string, task: string }> {	
+	const { repoURL, task } = await prompts({
+		type: 'text',
+		name: 'repoURL',
+		message: 'Enter repo URL with which you want the AI developer to work on:'
+	},
+	{
+		type: 'text',
+		name: 'task',
+		message: 'Enter the task you want the AI developer to work on:'
+	} as any) as any
 
-	const { repoURL, task } = await prompts(questions)
 	return { repoURL, task }
 }
 
-async function processAssistantMessage(sandbox, requiredAction) {
-	console.log(requiredAction)
+async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 	const toolCals = requiredAction.submit_tool_outputs.tool_calls
 	const outputs = []
 	for (const toolCall of toolCals) {
@@ -188,6 +187,5 @@ async function main() {
 
 	await sandbox.close()
 }
-
 
 await main()
