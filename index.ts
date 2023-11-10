@@ -10,6 +10,9 @@ const openai = new OpenAI()
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
 const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
+const gitEmail = 'e2b-assistant[bot]@users.noreply.github.com'
+const gitName = 'e2b-assisntant[bot]'
+
 const rootdir = '/home/user'
 const repoDir = 'repo'
 const repoDirPath = path.join(rootdir, repoDir)
@@ -24,12 +27,16 @@ function log(output: { line: string }) {
 
 async function loginWithGH(sandbox: Sandbox): Promise<string> {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
-	const process = await sandbox.process.start({ cmd: 'gh auth login --with-token < /home/user/.github-token' })
+	const process = await sandbox.process.start({ cmd: `gh auth login --with-token < /home/user/.github-token &&
+git config --global user.email "${gitEmail}" &&
+git config --global user.name "${gitName}" &&
+git config --global push.autoSetupRemote true` })
 	await process.wait()
 
 	if (process.output.stderr) {
 		return `fail: ${process.output.stderr}`
 	}
+
 	return "success"
 }
 
@@ -43,33 +50,61 @@ async function cloneRepo(sandbox: Sandbox, repoURL: string): Promise<string> {
 }
 
 async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
-	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath, onStderr: log })
-	await processAdd.wait()
+	try {
+		const processAdd = await sandbox.process.start({cmd: 'git add .', cwd: repoDirPath, onStderr: log})
+		await processAdd.wait()
 
-	const processCommit = await sandbox.process.start({ cmd: `git commit -m "${message}"`, cwd: repoDirPath, onStderr: log })
-	await processCommit.wait()
-	return "success"
+		const processCommit = await sandbox.process.start({
+			cmd: `git commit -m "${message}"`,
+			cwd: repoDirPath,
+			onStderr: log
+		})
+		await processCommit.wait()
+		return "success"
+	} catch (e) {
+		return `Error: ${e.message}}`
+	}
 }
 
 async function makePullRequest(sandbox: Sandbox, title: string, body: string): Promise<string> {
-	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath, onStderr: log })
-	await processPush.wait()
+	try {
+		const processPush = await sandbox.process.start({cmd: 'git push', cwd: repoDirPath, onStderr: log})
+		await processPush.wait()
 
-	const processPR = await sandbox.process.start({ cmd: `gh pr create --title "${title}"`, cwd: repoDirPath, onStderr: log })
-	await processPR.wait()
-	return "success"
+		const processPR = await sandbox.process.start({
+			cmd: `gh pr create --title "${title}"`,
+			cwd: repoDirPath,
+			onStderr: log
+		})
+		await processPR.wait()
+		return "success"
+	} catch (e) {
+		return `Error: ${e.message}}`
+	}
 }
 
 
 async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: string): Promise<string> {
-	// const folders = absolutePath.split('/')
-	// const restPath = path.relative(repoDirPath, absolutePath)
-	// for (let i = 1; i < folders.length; i++) {
-	// 	const folder = folders.slice(0, i).join('/')
-	// 	await sandbox.filesystem.makeDir(folder)
-	// }
-	await sandbox.filesystem.write(absolutePath, code)
-	return "success"
+	try {
+		const dir = path.dirname(absolutePath)
+
+		const process = await sandbox.process.start({cmd: `mkdir -p ${dir}`, onStderr: log})
+		await process.wait()
+
+		await sandbox.filesystem.write(absolutePath, code)
+		return "success"
+	} catch (e) {
+		return `Error: ${e.message}}`
+	}
+}
+
+async function makeDir(sandbox: Sandbox, path: string): Promise<string> {
+	try {
+		await sandbox.filesystem.makeDir(path)
+		return "success"
+	} catch (e) {
+		return `Error: ${e.message}}`
+	}
 }
 
 async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
@@ -135,7 +170,9 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 		} else if (toolName === 'saveCodeToFile') {
 			output = await saveCodeToFile(sandbox,  args.code, args.filename)
 		} else if (toolName === 'listFiles') {
-			output = await listFiles(sandbox,  args.path)
+			output = await listFiles(sandbox, args.path)
+		} else if (toolName === 'makeDir') {
+			output = await makeDir(sandbox,  args.path)
 		} else if (toolName === 'readFile') {
 			output = await readFile(sandbox,  args.path)
 		} else {
