@@ -131,61 +131,57 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 	return outputs
 }
 
-async function main() {
-	const assistant = await getAssistant()
-	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: log, onStderr: log })
-	// await loginWithGH(sandbox)
+const assistant = await getAssistant()
+const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: log, onStderr: log })
+// await loginWithGH(sandbox)
 
-	// Start terminal session with user
-	// const { repoURL, task } = await initChat()
-	const repoURL = "	"
-	const task = "Write a function that takes a string and returns the string reversed."
-	// await cloneRepo(sandbox, repoURL)
-	const thread = await createThread(repoURL, task)
+// Start terminal session with user
+// const { repoURL, task } = await initChat()
+const repoURL = "	"
+const task = "Write a function that takes a string and returns the string reversed."
+// await cloneRepo(sandbox, repoURL)
+const thread = await createThread(repoURL, task)
 
-	let run = await openai.beta.threads.runs.create(
-		thread.id,
-		{
-			assistant_id: assistant.id,
-		}
-	)
-	console.log(run)
-		let counter = 0
-	while(true) {
-		counter++
-		console.log(counter)
-		await sleep(1000)
-		run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
-		console.log(run.status)
-		if (run.status === 'completed') {
-			break
-		}
-		else if (run.status === 'requires_action') {
-			console.log(run.required_action)
-			const outputs = await processAssistantMessage(sandbox, run.required_action)
-			await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, outputs)
-		} else if (run.status === 'queued' || run.status === 'in_progress') {
-			continue
-		} else {
-			throw new Error(`Unknown status: ${run.status}`)
-		}
-
+let run = await openai.beta.threads.runs.create(
+	thread.id,
+	{
+		assistant_id: assistant.id,
+	}
+)
+console.log(run)
+	let counter = 0
+while(true) {
+	counter++
+	console.log(counter)
+	await sleep(1000)
+	run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
+	console.log(run.status)
+	if (run.status === 'completed') {
+		break
+	}
+	else if (run.status === 'requires_action') {
+		console.log(run.required_action)
+		const outputs = await processAssistantMessage(sandbox, run.required_action)
+		await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, outputs)
+	} else if (run.status === 'queued' || run.status === 'in_progress') {
+		continue
+	} else {
+		throw new Error(`Unknown status: ${run.status}`)
 	}
 
-	const steps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
-	const messages= await openai.beta.threads.messages.list(
-		thread.id,
-
-  );
-	console.log(steps.data[0].step_details.message_creation)
-	console.log(messages.data[0])
-	console.log(messages.data.map((message) => message.content))
-	// await openai.beta.threads.runs.update()
-
-	// const runSteps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
-	// console.log(runSteps)
-
-	await sandbox.close()
 }
 
-await main()
+const steps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
+const messages= await openai.beta.threads.messages.list(
+	thread.id,
+
+);
+console.log(steps.data[0].step_details.message_creation)
+console.log(messages.data[0])
+console.log(messages.data.map((message) => message.content))
+// await openai.beta.threads.runs.update()
+
+// const runSteps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
+// console.log(runSteps)
+
+await sandbox.close()
