@@ -58,11 +58,20 @@ async function makePullRequest(sandbox: Sandbox, title: string, body: string): P
 
 
 async function saveCodeToFile(sandbox: Sandbox, code: string, path: string): Promise<void> {
+	const folders = path.split('/')
+	for (let i = 1; i < folders.length; i++) {
+		const folder = folders.slice(0, i).join('/')
+		await sandbox.filesystem.makeDir(folder)
+	}
 	await sandbox.filesystem.write(path, code)
 }
 
 async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
-	return (await sandbox.filesystem.list(path)).map(file => file.isDir ? `dir: ${file.name}` : file.name).toString()
+	try {
+		return (await sandbox.filesystem.list(path)).map(file => file.isDir ? `dir: ${file.name}` : file.name).toString()
+	} catch (e) {
+		return `Error: ${e.message}}`
+	}
 }
 
 async function readFile(sandbox: Sandbox, path: string): Promise<string> {
