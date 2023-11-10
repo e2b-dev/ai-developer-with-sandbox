@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import { Sandbox } from '@e2b/sdk'
 import OpenAI from 'openai'
+import path from 'path'
 
 const openai = new OpenAI()
 const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
@@ -11,101 +12,78 @@ const rootdir = '/code'
 const repoDir = 'repo'
 const repoDirPath = path.join(rootdir, repoDir)
 
-const gitEmail = 'e2b-assistant[bot]@users.noreply.github.com'
-const gitName = 'e2b-assisntant[bot]'
+async function loginWithGH() {
+	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
+	const process = await sandbox.process.start('gh auth login --with-token < /home/user/.github-token')
+	await process.wait()
 
-// function getAuthRepoURL(repoURL) {
-// 	return repoURL.replace('https://', `https://${GITHUB_TOKEN}@`)
-// }
-
-// async function cloneRepo(repoURL) {
-// 	const repoURLAuth = getAuthRepoURL(repoURL)
-
-// 	const { output: { stderr } } = await sandbox.process.start({
-// 		cmd: `git clone --depth 1 ${repoURLAuth} ${repoDir}`,
-// 		cwd: rootdir,
-// 		onStdout: console.log,
-// 	})
-
-// 	if (stderr) {
-// 		throw new Error(stderr)
-// 	}
-// }
-
-// async function makeCommit(repoURL, message) {
-// 	const repoURLAuth = getAuthRepoURL(repoURL)
-	
-// 	const { output: { stderr } } = await sandbox.process.start({
-// 		cmd: `
-// git config --global user.email "${gitEmail}" &&
-// git config --global user.name "${gitName}" &&
-// git config --global push.autoSetupRemote true &&
-// git add . &&
-// git commit -m "${message}" &&
-// git push ${repoURLAuth}
-// `,
-// 		cwd: repoDirPath,
-// 		onStdout: console.log,
-// 	})
-
-// 	if (stderr) {
-// 		throw new Error(stderr)
-// 	}
-// }
-
-// async function createBranch(branchName) {
-// 	const { output: { stderr } } = await sandbox.process.start({
-// 		cmd: `git checkout -b ${branchName}`,
-// 		cwd: repoDirPath,
-// 		onStdout: console.log,
-// 	})
-
-// 	if (stderr) {
-// 		throw new Error(stderr)
-// 	}
-// }
-
-// function makePullRequest(title) {
-// 	const branchName = `pr-${title.replace(/\s/g, '-')}`
-// }
-
-	// Create a new branch
-
-	// Push the branch
-
-	// Create a pull request
+	if (process.output.stderr) {
+		throw new Error(process.output.stderr)
+	}
+}
 
 async function cloneRepo(sandbox, repoURL) {
-	const process = await sandbox.process.start(`git clone ${repoURL}`)
+	const process = await sandbox.process.start(`git clone ${repoURL} ${repoDirPath}`)
 	await process.wait()
-	const processCreateBranch = await sandbox.process.start('git checkout -b ai-developer')
+
+	if (process.output.stderr) {
+		throw new Error(process.output.stderr)
+	}
+
+	const processCreateBranch = await sandbox.process.start({ cmd: 'git checkout -b ai-developer', cwd: repoDirPath })
 	await processCreateBranch.wait()
+
+	if (processCreateBranch.output.stderr) {
+		throw new Error(processCreateBranch.output.stderr)
+	}
 }
 
 async function makeCommit(sandbox, message) {
-	const processAdd =await sandbox.process.start('git add .')
+	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath })
 	await processAdd.wait()
-	const processCommit = await sandbox.process.start(`git commit -m "${message}"`)
+
+	if (processAdd.output.stderr) {
+		throw new Error(processAdd.output.stderr)
+	}
+
+	const processCommit = await sandbox.process.start({ cmd: `git commit -m "${message}"`, cwd: repoDirPath })
 	await processCommit.wait()
+
+	if (processCommit.output.stderr) {
+		throw new Error(processCommit.output.stderr)
+	}
 }
 
 async function makePullRequest(sandbox, title) {
-	const processPush = await sandbox.process.start('git push')
+	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath })
 	await processPush.wait()
-	const processPR = await sandbox.process.start(`gh pr create --title "${title}"`)
+
+	if (processPush.output.stderr) {
+		throw new Error(processPush.output.stderr)
+	}
+
+	const processPR = await sandbox.process.start({ cmd: `gh pr create --title "${title}"`, cwd: repoDirPath })
 	await processPR.wait()
+
+	if (processPR.output.stderr) {
+		throw new Error(processPR.output.stderr)
+	}
 }
 
-async function saveCodeToFile(sandbox, code, filename) {
-	return await sandbox.filesystem.write(filename, code)
+function getPathToRepo(relativePath) {
+	return path.join(repoDirPath, relativePath)
 }
 
-async function listFiles(sandbox, path) {
-	return await sandbox.filesystem.read(path)
+async function saveCodeToFile(sandbox, code, relativePath) {
+	await sandbox.filesystem.write(getPathToRepo(relativePath), code)
 }
 
-async function readFile(sandbox, path) {
-	return await sandbox.filesystem.read(path)
+async function listFiles(sandbox, relativePath) {
+	return await sandbox.filesystem.read(getPathToRepo(relativePath))
+}
+
+async function readFile(sandbox, relativePath) {
+	return await sandbox.filesystem.read(getPathToRepo(relativePath))
 }
 
 function getAssistant() {
@@ -137,6 +115,7 @@ async function main() {
 	//   - When a tool returns an output send submit it back to the threads.runs like mentioned here
 	//   - https://platform.openai.com/docs/assistants/tools/submitting-functions-outputs
 
+	
   console.log(assistant)
 	await sandbox.close()
 }
