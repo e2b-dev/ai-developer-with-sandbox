@@ -68,13 +68,14 @@ async function makePullRequest(sandbox: Sandbox, title: string, body: string): P
 }
 
 
-async function saveCodeToFile(sandbox: Sandbox, code: string, path: string): Promise<string> {
-	const folders = path.split('/')
-	for (let i = 1; i < folders.length; i++) {
-		const folder = folders.slice(0, i).join('/')
-		await sandbox.filesystem.makeDir(folder)
-	}
-	await sandbox.filesystem.write(path, code)
+async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: string): Promise<string> {
+	// const folders = absolutePath.split('/')
+	// const restPath = path.relative(repoDirPath, absolutePath)
+	// for (let i = 1; i < folders.length; i++) {
+	// 	const folder = folders.slice(0, i).join('/')
+	// 	await sandbox.filesystem.makeDir(folder)
+	// }
+	await sandbox.filesystem.write(absolutePath, code)
 	return "success"
 }
 
@@ -187,8 +188,15 @@ while (true) {
 	run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
 	console.log(run.status)
 	if (run.status === 'completed') {
-		// TODO: Let user respond to the AI developer
-		break
+		const messages= await openai.beta.threads.messages.list(thread.id)
+		messages.data.forEach(m => console.log(m.content))
+		// console.log('message', messages.data[0].content)
+
+		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: ' ' })
+		await openai.beta.threads.messages.create(thread.id, {
+			role: 'user',
+			content: userResponse as string,
+		})
 	}
 	else if (run.status === 'requires_action') {
 		console.log(run.required_action)
@@ -211,13 +219,10 @@ while (true) {
 	}
 
 }
-const steps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
+// const steps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
 const messages= await openai.beta.threads.messages.list(
 	thread.id,
-
 );
-console.log('steps', steps.data[0].step_details.message_creation)
-console.log('message', messages.data[0].content)
 console.log('messages', messages.data.map((message) => message.content))
 // await openai.beta.threads.runs.update()
 
