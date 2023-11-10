@@ -1,4 +1,4 @@
-import { AssistantCreateParams } from "openai/src/resources/beta/assistants/assistants";
+import { AssistantCreateParams } from 'openai/src/resources/beta/assistants/assistants'
 
 export const functions: Array<
   | AssistantCreateParams.AssistantToolsCode
@@ -7,20 +7,20 @@ export const functions: Array<
 > = [
   // Save code to file
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "saveCodeToFile",
-      description: "Save code to file",
+      name: 'saveCodeToFile',
+      description: 'Save code to file',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {
           code: {
-            type: "string",
-            description: "The code to save",
+            type: 'string',
+            description: 'The code to save',
           },
           filename: {
-            type: "string",
-            description: "The filename including the path and extension",
+            type: 'string',
+            description: 'The filename including the path and extension',
           },
         },
       },
@@ -28,16 +28,16 @@ export const functions: Array<
   },
   // List files
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "listFiles",
-      description: "List files in a directory",
+      name: 'listFiles',
+      description: 'List files in a directory',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {
           path: {
-            type: "string",
-            description: "The path to the directory",
+            type: 'string',
+            description: 'The path to the directory',
           },
         },
       },
@@ -45,16 +45,16 @@ export const functions: Array<
   },
   // Make commit
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "makeCommit",
-      description: "Make a commit",
+      name: 'makeCommit',
+      description: 'Make a commit',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {
           message: {
-            type: "string",
-            description: "The commit message",
+            type: 'string',
+            description: 'The commit message',
           },
         },
       },
@@ -62,20 +62,20 @@ export const functions: Array<
   },
   // Make pull request
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "makePullRequest",
-      description: "Make a pull request",
+      name: 'makePullRequest',
+      description: 'Make a pull request',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {
           title: {
-            type: "string",
-            description: "The pull request title",
+            type: 'string',
+            description: 'The pull request title',
           },
           body: {
-            type: "string",
-            description: "The pull request body",
+            type: 'string',
+            description: 'The pull request body',
           },
         },
       },
@@ -83,19 +83,19 @@ export const functions: Array<
   },
   // Read file
   {
-    type: "function",
+    type: 'function',
     function: {
-      name: "readFile",
-      description: "Read a file",
+      name: 'readFile',
+      description: 'Read a file',
       parameters: {
-        type: "object",
+        type: 'object',
         properties: {
           path: {
-            type: "string",
-            description: "The path to the file",
+            type: 'string',
+            description: 'The path to the file',
           },
         },
       },
     },
   },
-];
+]
