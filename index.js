@@ -114,9 +114,7 @@ async function processAssistantMessage(sandbox, requiredAction) {
 	for (const toolCall of toolCals) {
 		let output = null
 		const toolName = toolCall.function.name
-		if (toolName === 'cloneRepo') {
-			await cloneRepo(sandbox, toolCall.function.arguments[0])
-		} else if (toolName === 'makeCommit') {
+		if (toolName === 'makeCommit') {
 			await makeCommit(sandbox,  toolCall.function.arguments[0])
 		} else if (toolName === 'makePullRequest') {
 			await makePullRequest(sandbox,  toolCall.function.arguments[0])
@@ -145,6 +143,7 @@ async function main() {
 
 	// Start terminal session with user
 	const { repoURL, task } = initChat()
+	await cloneRepo(sandbox, repoURL)
 	const thread = await createThread(repoURL, task)
 
 
