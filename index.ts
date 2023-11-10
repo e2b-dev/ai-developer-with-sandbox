@@ -10,6 +10,9 @@ const openai = new OpenAI()
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
 const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
+const gitEmail = 'e2b-assistant[bot]@users.noreply.github.com'
+const gitName = 'e2b-assisntant[bot]'
+
 const rootdir = '/home/user'
 const repoDir = 'repo'
 const repoDirPath = path.join(rootdir, repoDir)
@@ -24,12 +27,16 @@ function log(output: { line: string }) {
 
 async function loginWithGH(sandbox: Sandbox): Promise<string> {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
-	const process = await sandbox.process.start({ cmd: 'gh auth login --with-token < /home/user/.github-token' })
+	const process = await sandbox.process.start({ cmd: `gh auth login --with-token < /home/user/.github-token &&
+git config --global user.email "${gitEmail}" &&
+git config --global user.name "${gitName}" &&
+git config --global push.autoSetupRemote true` })
 	await process.wait()
 
 	if (process.output.stderr) {
 		return `fail: ${process.output.stderr}`
 	}
+
 	return "success"
 }
 
