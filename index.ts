@@ -126,6 +126,8 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction) {
 			throw new Error(`Unknown tool: ${toolName}`)
 		}
 
+		console.log('OUTPUT:\n',output)
+
 		if (output) {
 			outputs.push({
 				tool_call_id: toolCall.id,
@@ -163,6 +165,7 @@ while (true) {
 	run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
 	console.log(run.status)
 	if (run.status === 'completed') {
+		// TODO: Let user respond to the AI developer
 		break
 	}
 	else if (run.status === 'requires_action') {
