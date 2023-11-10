@@ -140,9 +140,11 @@ async function processAssistantMessage(sandbox, requiredAction) {
 async function main() {
 	const assistant = await getAssistant()
 	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
+	await loginWithGH(sandbox)
 
 	// Start terminal session with user
 	const { repoURL, task } = initChat()
+
 	await cloneRepo(sandbox, repoURL)
 	const thread = await createThread(repoURL, task)
 
