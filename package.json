@@ -25,7 +25,7 @@
   "contributors": [],
   "scripts": {
     "dev": "",
-    "test": "tsx index.ts"
+    "start": "tsx index.ts"
   },
   "dependencies": {
     "@e2b/sdk": "^0.8.6",
