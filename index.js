@@ -2,9 +2,8 @@ import { Sandbox } from '@e2b/sdk'
 import OpenAI from 'openai'
 import path from 'path'
 import 'dotenv/config'
-import promptSync from 'prompt-sync'
+import prompts from 'prompts'
 
-const prompt = promptSync({ sigint: true })
 const openai = new OpenAI()
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN
@@ -102,9 +101,21 @@ function createThread(repoURL, task) {
 	});
 }
 
-function initChat() {
-	const repoURL = prompt('Enter repo URL with which you want the AI developer to work: ')
-	const task = prompt('Enter the task you want the AI developer to work on: ')
+async function initChat() {	
+	const questions = [
+		{
+			type: 'text',
+			name: 'repoURL',
+			message: 'Enter repo URL with which you want the AI developer to work on:'
+		},
+		{
+			type: 'text',
+			name: 'task',
+			message: 'Enter the task you want the AI developer to work on:'
+		},
+	]
+
+	const { repoURL, task } = await prompts(questions)
 	return { repoURL, task }
 }
 
@@ -142,7 +153,8 @@ async function main() {
 	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: console.log, onStderr: console.error })
 	// await loginWithGH(sandbox)
 
-	const { repoURL, task } = initChat()
+	// Start terminal session with user
+	const { repoURL, task } = await initChat()
 
 	// await cloneRepo(sandbox, repoURL)
 	const thread = await createThread(repoURL, task)
