@@ -87,7 +87,7 @@ function createThread(repoURL: string, task: string) {
 	});
 }
 
-async function initChat(): Promise<{ repoURL: string, task: string }> {	
+async function initChat(): Promise<{ repoURL: string, task: string }> {
 	const { repoURL, task } = await prompts({
 		type: 'text',
 		name: 'repoURL',
@@ -177,13 +177,14 @@ async function main() {
 		thread.id,
 
   );
-	console.log(steps.data[0].step_details.message_creation)
-	console.log(messages.data[0])
-	console.log(messages.data.map((message) => message.content))
+	console.log('steps', steps.data[0].step_details.message_creation)
+	console.log('message', messages.data[0].content)
+	console.log('messages', messages.data.map((message) => message.content))
 	// await openai.beta.threads.runs.update()
 
 	// const runSteps = await openai.beta.threads.runs.steps.list(thread.id, run.id)
 	// console.log(runSteps)
+
 
 	await sandbox.close()
 }
