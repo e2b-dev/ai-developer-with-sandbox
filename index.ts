@@ -138,7 +138,9 @@ async function makeDir(sandbox: Sandbox, path: string): Promise<string> {
 async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
 	sandboxLog(`Listing files in ${path}`)
 	try {
-		return (await sandbox.filesystem.list(path)).map(file => file.isDir ? `dir: ${file.name}` : file.name).toString()
+		const files = await sandbox.filesystem.list(path)
+		const response = files.map(file => file.isDir ? `dir: ${file.name}` : file.name).join('\n')
+		return response
 	} catch (e) {
 		return `Error: ${e.message}}`
 	}
