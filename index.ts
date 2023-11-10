@@ -60,16 +60,16 @@ function getPathToRepo(relativePath: string) {
 	return path.join(repoDirPath, relativePath)
 }
 
-async function saveCodeToFile(sandbox: Sandbox, code: string, relativePath: string) {
-	await sandbox.filesystem.write(getPathToRepo(relativePath), code)
+async function saveCodeToFile(sandbox: Sandbox, code: string, path: string) {
+	await sandbox.filesystem.write(path, code)
 }
 
-async function listFiles(sandbox: Sandbox, relativePath: string) {
-	return await sandbox.filesystem.read(getPathToRepo(relativePath))
+async function listFiles(sandbox: Sandbox, path: string) {
+	return await sandbox.filesystem.list(path)
 }
 
-async function readFile(sandbox: Sandbox, relativePath: string) {
-	return await sandbox.filesystem.read(getPathToRepo(relativePath))
+async function readFile(sandbox: Sandbox, path: string) {
+	return await sandbox.filesystem.read(path)
 }
 
 function getAssistant() {
