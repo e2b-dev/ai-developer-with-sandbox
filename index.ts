@@ -27,10 +27,11 @@ function log(output: { line: string }) {
 
 async function loginWithGH(sandbox: Sandbox): Promise<string> {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
-	const process = await sandbox.process.start({ cmd: `gh auth login --with-token < /home/user/.github-token &&
-git config --global user.email "${gitEmail}" &&
-git config --global user.name "${gitName}" &&
-git config --global push.autoSetupRemote true` })
+	const process = await sandbox.process.start({ cmd: `gh auth login --with-token < /home/user/.github-token && gh auth setup-git &&
+	git config --global push.autoSetupRemote true
+	`})
+	// git config --global user.email "${gitEmail}" &&
+	// git config --global user.name "${gitName}" &&
 	await process.wait()
 
 	if (process.output.stderr) {
@@ -41,7 +42,7 @@ git config --global push.autoSetupRemote true` })
 }
 
 async function cloneRepo(sandbox: Sandbox, repoURL: string): Promise<string> {
-	const process = await sandbox.process.start({ cmd: `git clone ${repoURL} ${repoDirPath}`, onStderr: log })
+	const process = await sandbox.process.start({ cmd: `gh repo clone ${repoURL} ${repoDirPath}`, onStderr: log })
 	await process.wait()
 
 	const processCreateBranch = await sandbox.process.start({ cmd: 'git checkout -b ai-developer', cwd: repoDirPath, onStderr: log })
@@ -72,7 +73,7 @@ async function makePullRequest(sandbox: Sandbox, title: string, body: string): P
 		await processPush.wait()
 
 		const processPR = await sandbox.process.start({
-			cmd: `gh pr create --title "${title}"`,
+			cmd: `gh pr create --title "${title} --body AAAAAAAAAAAAAAAAAAA --fill"`,
 			cwd: repoDirPath,
 			onStderr: log
 		})
@@ -198,7 +199,7 @@ await loginWithGH(sandbox)
 
 // Start terminal session with user
 // const { repoURL, task } = await initChat()
-const repoURL = "https://github.com/mlejva/nextjs-todo-app"
+const repoURL = "mlejva/nextjs-todo-app"
 const task = "Write a function that takes a string and returns the string reversed."
 await cloneRepo(sandbox, repoURL)
 const thread = await createThread(repoURL, task)
@@ -218,7 +219,7 @@ while (true) {
 	run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
 	console.log(run.status)
 	if (run.status === 'completed') {
-		// const messages = await openai.beta.threads.messages.list(thread.id)
+		const messages = await openai.beta.threads.messages.list(thread.id)
 		// messages.data.forEach(m => console.log(m.content))
 		console.log(messages.data[0].content)
 
