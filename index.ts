@@ -50,32 +50,52 @@ async function cloneRepo(sandbox: Sandbox, repoURL: string): Promise<string> {
 }
 
 async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
-	const processAdd = await sandbox.process.start({ cmd: 'git add .', cwd: repoDirPath, onStderr: log })
-	await processAdd.wait()
+	try {
+		const processAdd = await sandbox.process.start({cmd: 'git add .', cwd: repoDirPath, onStderr: log})
+		await processAdd.wait()
 
-	const processCommit = await sandbox.process.start({ cmd: `git commit -m "${message}"`, cwd: repoDirPath, onStderr: log })
-	await processCommit.wait()
-	return "success"
+		const processCommit = await sandbox.process.start({
+			cmd: `git commit -m "${message}"`,
+			cwd: repoDirPath,
+			onStderr: log
+		})
+		await processCommit.wait()
+		return "success"
+	} catch (e) {
+		return `Error: ${e.message}}`
+	}
 }
 
 async function makePullRequest(sandbox: Sandbox, title: string, body: string): Promise<string> {
-	const processPush = await sandbox.process.start({ cmd: 'git push', cwd: repoDirPath, onStderr: log })
-	await processPush.wait()
+	try {
+		const processPush = await sandbox.process.start({cmd: 'git push', cwd: repoDirPath, onStderr: log})
+		await processPush.wait()
 
-	const processPR = await sandbox.process.start({ cmd: `gh pr create --title "${title}"`, cwd: repoDirPath, onStderr: log })
-	await processPR.wait()
-	return "success"
+		const processPR = await sandbox.process.start({
+			cmd: `gh pr create --title "${title}"`,
+			cwd: repoDirPath,
+			onStderr: log
+		})
+		await processPR.wait()
+		return "success"
+	} catch (e) {
+		return `Error: ${e.message}}`
+	}
 }
 
 
 async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: string): Promise<string> {
-	const dir = path.dirname(absolutePath)
+	try {
+		const dir = path.dirname(absolutePath)
 
-	const process = await sandbox.process.start({ cmd: `mkdir -p ${dir}`, onStderr: log })
-	await process.wait()
+		const process = await sandbox.process.start({cmd: `mkdir -p ${dir}`, onStderr: log})
+		await process.wait()
 
-	await sandbox.filesystem.write(absolutePath, code)
-	return "success"
+		await sandbox.filesystem.write(absolutePath, code)
+		return "success"
+	} catch (e) {
+		return `Error: ${e.message}}`
+	}
 }
 
 async function makeDir(sandbox: Sandbox, path: string): Promise<string> {
