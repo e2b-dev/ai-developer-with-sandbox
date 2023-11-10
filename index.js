@@ -1,10 +1,11 @@
-import 'dotenv/config'
 import { Sandbox } from '@e2b/sdk'
 import OpenAI from 'openai'
 import path from 'path'
+import 'dotenv/config'
+import promptSync from 'prompt-sync'
 
+const prompt = promptSync({ sigint: true })
 const openai = new OpenAI()
-const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN
 
@@ -12,7 +13,7 @@ const rootdir = '/code'
 const repoDir = 'repo'
 const repoDirPath = path.join(rootdir, repoDir)
 
-async function loginWithGH() {
+async function loginWithGH(sandbox) {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
 	const process = await sandbox.process.start('gh auth login --with-token < /home/user/.github-token')
 	await process.wait()
@@ -101,9 +102,52 @@ function createThread(repoURL, task) {
 	});
 }
 
+function initChat() {
+	const repoURL = prompt('Enter repo URL with which you want the AI developer to work: ')
+	const task = prompt('Enter the task you want the AI developer to work on: ')
+	return { repoURL, task }
+}
+
+async function processAssistantMessage(sandbox, requiredAction) {
+	const toolCals = requiredAction.sumbitToolOutpus.toolCalls
+	const outputs = []
+	for (const toolCall of toolCals) {
+		let output = null
+		const toolName = toolCall.function.name
+		if (toolName === 'cloneRepo') {
+			await cloneRepo(sandbox, toolCall.input.repoURL)
+		} else if (toolName === 'makeCommit') {
+			await makeCommit(sandbox, toolCall.input.message)
+		} else if (toolName === 'makePullRequest') {
+			await makePullRequest(sandbox, toolCall.input.title)
+		} else if (toolName === 'saveCodeToFile') {
+			await saveCodeToFile(sandbox, toolCall.input.code, toolCall.input.filename)
+		} else if (toolName === 'listFiles') {
+			output = await listFiles(sandbox, toolCall.input.path)
+		} else if (toolName === 'readFile') {
+			output = await readFile(sandbox, toolCall.input.path)
+		} else {
+			throw new Error(`Unknown tool: ${toolName}`)
+		}
+		if (output) {
+			outputs.push({
+				toolCallId: toolCall.toolCallId,
+				output: output
+			})
+		}
+	}
+	return outputs
+}
+
 async function main() {
 	const assistant = await getAssistant()
 	const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox' })
+
+	// Start terminal session with user
+	const { repoURL, task } = initChat()
+	const thread = await createThread(repoURL, task)
+
+
 	// Docs https://platform.openai.com/docs/assistants/how-it-works/managing-threads-and-messages
 
 
@@ -115,9 +159,8 @@ async function main() {
 	//   - When a tool returns an output send submit it back to the threads.runs like mentioned here
 	//   - https://platform.openai.com/docs/assistants/tools/submitting-functions-outputs
 
-	
-  console.log(assistant)
 	await sandbox.close()
 }
+
 
 await main()
