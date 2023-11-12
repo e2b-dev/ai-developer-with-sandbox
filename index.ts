@@ -5,10 +5,10 @@ import path from 'path'
 import prompts from 'prompts'
 import { Sandbox } from '@e2b/sdk'
 import { customAlphabet } from 'nanoid'
-import { RunSubmitToolOutputsParams } from 'openai/resources/beta/threads/runs/runs'
 import ora from 'ora';
 import { MessageContentText } from 'openai/resources/beta/threads'
 
+import { ActionSandbox } from './e2b'
 import {
 	onLog,
 	sandboxLog,
@@ -65,7 +65,7 @@ async function cloneRepo(sandbox: Sandbox, repo: string) {
 	return 'success'
 }
 
-async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
+async function makeCommit(sandbox: Sandbox, { message }: { message: string }): Promise<string> {
 	sandboxLog(`Making commit with message ${message}`)
 	try {
 		const processAdd = await sandbox.process.start({cmd: 'git add .', cwd: repoDirPath })
@@ -82,7 +82,7 @@ async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
 	}
 }
 
-async function makePullRequest(sandbox: Sandbox, title: string): Promise<string> {
+async function makePullRequest(sandbox: Sandbox, { title }: { title: string }): Promise<string> {
 	sandboxLog(`Making pull request with title ${title}`)
 	try {
 		const processPush = await sandbox.process.start({ cmd: `git push -u origin ai-developer-${branchID}`, cwd: repoDirPath })
@@ -99,7 +99,7 @@ async function makePullRequest(sandbox: Sandbox, title: string): Promise<string>
 	}
 }
 
-async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: string): Promise<string> {
+async function saveCodeToFile(sandbox: Sandbox, { code, absolutePath }: { code: string, absolutePath: string }): Promise<string> {
 	sandboxLog(`Saving code to file ${absolutePath}`)
 	try {
 		const dir = path.dirname(absolutePath)
@@ -113,7 +113,7 @@ async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: stri
 	}
 }
 
-async function makeDir(sandbox: Sandbox, path: string): Promise<string> {
+async function makeDir(sandbox: Sandbox, { path }: { path: string }): Promise<string> {
 	sandboxLog(`Creating dir ${path}`)
 	try {
 		await sandbox.filesystem.makeDir(path)
@@ -124,7 +124,7 @@ async function makeDir(sandbox: Sandbox, path: string): Promise<string> {
 	}
 }
 
-async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
+async function listFiles(sandbox: Sandbox, { path }: { path: string }): Promise<string> {
 	sandboxLog(`Listing files in ${path}`)
 	try {
 		const files = await sandbox.filesystem.list(path)
@@ -135,7 +135,7 @@ async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
 	}
 }
 
-async function readFile(sandbox: Sandbox, path: string): Promise<string> {
+async function readFile(sandbox: Sandbox, { path }: { path: string }): Promise<string> {
 	sandboxLog(`Reading file ${path}`)
 	try {
 		return await sandbox.filesystem.read(path)
@@ -176,60 +176,28 @@ async function initChat(): Promise<{ repoName: string, task: string }> {
 	return { repoName, task }
 }
 
-async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.Beta.Threads.Runs.Run.RequiredAction) {
-	const toolCalls = requiredAction.submit_tool_outputs.tool_calls
-  const outputs: RunSubmitToolOutputsParams.ToolOutput[] = []
-
-	for (const toolCall of toolCalls) {
-		let output: any
-		const toolName = toolCall.function.name
-		const args = JSON.parse(toolCall.function.arguments)
-
-		assistantLog(`Calling tool '${toolName}'`)
-
-		if (toolName === 'makeCommit') {
-			output = await makeCommit(sandbox, args.message)
-		} else if (toolName === 'makePullRequest') {
-			output = await makePullRequest(sandbox,  args.title)
-		} else if (toolName === 'saveCodeToFile') {
-			output = await saveCodeToFile(sandbox, args.code, args.filename)
-		} else if (toolName === 'listFiles') {
-			output = await listFiles(sandbox, args.path)
-		} else if (toolName === 'makeDir') {
-			output = await makeDir(sandbox, args.path)
-		} else if (toolName === 'readFile') {
-			output = await readFile(sandbox, args.path)
-		} else {
-			throw new Error(`Unknown tool: ${toolName}`)
-		}
-
-		assistantLog(`Tool '${toolName}' output: ${output}`)
-
-		if (output) {
-			outputs.push({
-				tool_call_id: toolCall.id,
-				output,
-			})
-		}
-	}
-
-	return outputs
-}
-
 const { repoName, task } = await initChat()
 
-const assistant = await getAssistant()
-const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: onLog, onStderr: onLog })
+const sandbox = await ActionSandbox.create({ id: 'ai-developer-sandbox', onStdout: onLog, onStderr: onLog })
+
+sandbox.openai.assistant
+	.registerAction('readFile', readFile)
+	.registerAction('makeCommit', makeCommit)
+	.registerAction('makePullRequest', makePullRequest)
+	.registerAction('saveCodeToFile', saveCodeToFile)
+	.registerAction('makeDir', makeDir)
+	.registerAction('listFiles', listFiles)
+
+
 await loginWithGH(sandbox)
-
-// Start terminal session with user
-
 await cloneRepo(sandbox, repoName)
+
 const thread = await createThread(repoName, task)
+const assistant = await getAssistant()
 
 let run = await openai.beta.threads.runs.create(thread.id, { assistant_id: assistant.id })
-
 let counter = 0
+
 while (true) {
 	counter++
 	spinner.start()
@@ -257,19 +225,16 @@ while (true) {
 	else if (run.status === 'requires_action') {
 		spinner.stop()
 
-		if (!run.required_action) {
-			assistantLog('No required action')
-			continue
-		}
-
-		const outputs = await processAssistantMessage(sandbox, run.required_action)
+		const outputs = await sandbox.openai.assistant.run(run)
 
 		spinner.start()
 
-		await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, {
-			tool_outputs: outputs,
-		})
+		if (outputs.length > 0) {
+			await openai.beta.threads.runs.submitToolOutputs(thread.id, run.id, {
+				tool_outputs: outputs,
+			})
 
+		}
 	} else if (run.status === 'queued' || run.status === 'in_progress') {
 		continue
 	} else {
