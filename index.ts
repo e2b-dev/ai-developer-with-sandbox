@@ -5,17 +5,20 @@ import path from 'path'
 import prompts from 'prompts'
 import { Sandbox } from '@e2b/sdk'
 import { customAlphabet } from 'nanoid'
-import { RunSubmitToolOutputsParams } from "openai/resources/beta/threads/runs/runs"
-import chalk from 'chalk'
+import { RunSubmitToolOutputsParams } from 'openai/resources/beta/threads/runs/runs'
 import ora from 'ora';
-import { MessageContentText } from "openai/resources/beta/threads";
+import { MessageContentText } from 'openai/resources/beta/threads'
+
+import {
+	onLog,
+	sandboxLog,
+	assistantLog
+} from './log'
 
 
 const openai = new OpenAI()
-
 const spinner = ora('Waiting for assistant')
 
-const orange = chalk.hex('#FFB766')
 
 const GIT_USERNAME = process.env.GIT_USERNAME!
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
@@ -34,23 +37,12 @@ function sleep(time: number) {
 	return new Promise((resolve) => setTimeout(resolve, time))
 }
 
-function onLog(output: { line: string }) {
-	sandboxLog(output.line)
-}
-
-function sandboxLog(line: string) {
-	console.log(`${orange('[Sandbox]')} ${line}`)
-}
-
-function assistantLog(line: string) {
-	console.log(`${chalk.blue('[Assistant]')} ${line}`)
-}
 
 async function loginWithGH(sandbox: Sandbox): Promise<string> {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
 	const process = await sandbox.process.start({ cmd: `gh auth login --with-token < /home/user/.github-token &&
-git config --global user.email "${gitEmail}" &&
-git config --global user.name "${gitName}" &&
+git config --global user.email '${gitEmail}' &&
+git config --global user.name '${gitName}' &&
 git config --global push.autoSetupRemote true`})
 	await process.wait()
 
@@ -58,7 +50,7 @@ git config --global push.autoSetupRemote true`})
 		return `fail: ${process.output.stderr}`
 	}
 
-	return "success"
+	return 'success'
 }
 
 async function cloneRepo(sandbox: Sandbox, repo: string) {
@@ -73,7 +65,7 @@ async function cloneRepo(sandbox: Sandbox, repo: string) {
 	const setRemote = await sandbox.process.start({ cmd: `git remote set-url origin https://${GIT_USERNAME}:${GITHUB_TOKEN}@github.com/${repo}.git`, cwd: repoDirPath })
 	await setRemote.wait()
 
-	return "success"
+	return 'success'
 }
 
 async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
@@ -83,11 +75,11 @@ async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
 		await processAdd.wait()
 
 		const processCommit = await sandbox.process.start({
-			cmd: `git commit -m "${message}"`,
+			cmd: `git commit -m '${message}'`,
 			cwd: repoDirPath,
 		})
 		await processCommit.wait()
-		return "success"
+		return 'success'
 	} catch (e) {
 		return `Error: ${e.message}}`
 	}
@@ -100,11 +92,11 @@ async function makePullRequest(sandbox: Sandbox, title: string): Promise<string>
 		await processPush.wait()
 
 		const processPR = await sandbox.process.start({
-			cmd: `gh pr create --title "${title}" --fill`,
+			cmd: `gh pr create --title '${title}' --fill`,
 			cwd: repoDirPath,
 		})
 		await processPR.wait()
-		return "success"
+		return 'success'
 	} catch (e) {
 		return `Error: ${e.message}}`
 	}
@@ -118,7 +110,7 @@ async function saveCodeToFile(sandbox: Sandbox, code: string, absolutePath: stri
 		await sandbox.filesystem.makeDir(dir)
 		await sandbox.filesystem.write(absolutePath, code)
 
-		return "success"
+		return 'success'
 	} catch (e) {
 		return `Error: ${e.message}}`
 	}
@@ -129,7 +121,7 @@ async function makeDir(sandbox: Sandbox, path: string): Promise<string> {
 	try {
 		await sandbox.filesystem.makeDir(path)
 
-		return "success"
+		return 'success'
 	} catch (e) {
 		return `Error: ${e.message}}`
 	}
@@ -163,8 +155,8 @@ function createThread(repoURL: string, task: string) {
 	return openai.beta.threads.create({
 		messages: [
 			{
-				"role": "user",
-				"content": `Pull this repo: '${repoURL}'. Then carefully plan this task and start working on it: ${task}`,
+				'role': 'user',
+				'content': `Pull this repo: '${repoURL}'. Then carefully plan this task and start working on it: ${task}`,
 			}
 		]
 	})
@@ -196,7 +188,7 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
 		const toolName = toolCall.function.name
 		const args = JSON.parse(toolCall.function.arguments)
 
-		assistantLog(`Calling tool "${toolName}"`)
+		assistantLog(`Calling tool '${toolName}'`)
 
 		if (toolName === 'makeCommit') {
 			output = await makeCommit(sandbox, args.message)
@@ -214,7 +206,7 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
 			throw new Error(`Unknown tool: ${toolName}`)
 		}
 
-		assistantLog(`Tool "${toolName}" output: ${output}`)
+		assistantLog(`Tool '${toolName}' output: ${output}`)
 
 		if (output) {
 			outputs.push({
@@ -250,7 +242,7 @@ while (true) {
 		spinner.stop()
 		const messages = await openai.beta.threads.messages.list(thread.id)
 		const textMessages = messages.data[0].content.filter(message => message.type === 'text') as MessageContentText[]
-		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: `${textMessages[0].text.value}\nIf you want to exit write "exit", otherwise write your response:\n` })
+		const { userResponse } = await prompts({ type: 'text', name: 'userResponse', message: `${textMessages[0].text.value}\nIf you want to exit write 'exit', otherwise write your response:\n` })
 		if (userResponse === 'exit') {
 			break
 		}
