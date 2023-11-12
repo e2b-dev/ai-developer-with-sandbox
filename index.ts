@@ -15,10 +15,8 @@ import {
 	assistantLog
 } from './log'
 
-
 const openai = new OpenAI()
 const spinner = ora('Waiting for assistant')
-
 
 const GIT_USERNAME = process.env.GIT_USERNAME!
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
@@ -36,7 +34,6 @@ const branchID = customAlphabet('abcdefghijklmnopqrstuvwxyz1234567890', 6)()
 function sleep(time: number) {
 	return new Promise((resolve) => setTimeout(resolve, time))
 }
-
 
 async function loginWithGH(sandbox: Sandbox): Promise<string> {
 	await sandbox.filesystem.write('/home/user/.github-token', GITHUB_TOKEN)
