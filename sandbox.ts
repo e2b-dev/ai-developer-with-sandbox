@@ -5,11 +5,9 @@ sandbox.oauth.googleCalendar.signInWithPassword({ email, password })
 
 sandbox.oauth.github.auth()
 
+sandbox.oauth.onChange((provider, status) => {})
 
-sandbox.oauth.onChange((provider, status) => {
-})
-
-sandbox.register('make_commit', async (sandbox: Sandbox, { message } : any) => {
+sandbox.register('make_commit', async (sandbox: Sandbox, { message }: any) => {
   await sandbox.process.start(`git commit -m ${message} .`)
 })
 
@@ -17,15 +15,9 @@ sandbox.register('new_calendar_event', async (sandbox: Sandbox) => {
   sandbox.oauth.googleCalendar.events.insert({})
 })
 
-
-
-
-
-
 // In other file
 
 sandbox.openai.assistant.run(openai, thread)
-
 
 // You can use Sandboxes via:
 // - API/SDK (as we have it now)

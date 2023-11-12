@@ -7,32 +7,33 @@ export interface Action<T = { [key: string]: any }> {
 }
 
 export class ActionSandbox extends Sandbox {
-  private actions: Map<string, Action<any>> = new Map();
+  private actions: Map<string, Action<any>> = new Map()
 
   static override async create(opts: SandboxOpts) {
-    const sandbox = new this(opts);
-    await sandbox._open({ timeout: opts?.timeout });
+    const sandbox = new this(opts)
+    await sandbox._open({ timeout: opts?.timeout })
     if (opts?.cwd) {
-      await sandbox.filesystem.makeDir(opts.cwd);
+      await sandbox.filesystem.makeDir(opts.cwd)
     }
-    return sandbox;
+    return sandbox
   }
 
-	readonly openai = {
-		assistant: {
-      registerAction: <T = { [name: string]: any }>(name: string, action: Action<T>) => {
-        this.actions.set(name, action)
-        
-        return this.openai.assistant
-      },
-			run: async (run: OpenAI.Beta.Threads.Runs.Run): Promise<RunSubmitToolOutputsParams.ToolOutput[]> => {
-				if (run.status !== 'requires_action') {
-					return []
-				}
+  registerAction<T = { [name: string]: any }>(name: string, action: Action<T>) {
+    this.actions.set(name, action)
 
-				if (!run.required_action) {
-					return []
-				}
+    return this
+  }
+
+  readonly openai = {
+    assistant: {
+      run: async (run: OpenAI.Beta.Threads.Runs.Run): Promise<RunSubmitToolOutputsParams.ToolOutput[]> => {
+        if (run.status !== 'requires_action') {
+          return []
+        }
+
+        if (!run.required_action) {
+          return []
+        }
 
         const outputs: RunSubmitToolOutputsParams.ToolOutput[] = []
 
@@ -52,7 +53,7 @@ export class ActionSandbox extends Sandbox {
         }
 
         return outputs
-			}
-		} as const
-	} as const
+      },
+    } as const,
+  } as const
 }
