@@ -129,6 +129,8 @@ assistantLoop: while (true) {
       console.error(`Unknown status: ${run.status}`)
       break assistantLoop
   }
+
+  run = await openai.beta.threads.runs.retrieve(thread.id, run.id)
 }
 
 spinner.stop()
