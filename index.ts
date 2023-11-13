@@ -4,8 +4,8 @@ import OpenAI from 'openai'
 import prompts from 'prompts'
 import ora from 'ora'
 import { MessageContentText } from 'openai/resources/beta/threads'
+import { Sandbox } from '@e2b/sdk'
 
-import { ActionSandbox } from './e2b'
 import { onLog } from './log'
 import { cloneRepo, loginWithGH } from './gh'
 import { sleep } from './sleep'
@@ -48,7 +48,7 @@ async function initChat(): Promise<{ repoName: string; task: string }> {
 
 const { repoName, task } = await initChat()
 
-const sandbox = await ActionSandbox.create({
+const sandbox = await Sandbox.create({
   id: 'ai-developer-sandbox',
   onStdout: onLog,
   onStderr: onLog,
