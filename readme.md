@@ -1,4 +1,4 @@
-# AI Developer GPT-4-Turbo & OpenAI's AI Assistant API
+# AI Developer powered by GPT-4-Turbo & OpenAI's AI Assistant API
 <p align="center">
   <img width="100" src="/img/logo-circle.png" alt="e2b logo">
 </p>
