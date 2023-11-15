@@ -6,6 +6,7 @@ import { functions } from './functions'
 const openai = new OpenAI()
 
 // Run this only once to create the assistant!
+// npm run create-ai-assistant
 export async function createAIDeveloper() {
   const aiDeveloper = await openai.beta.assistants.create({
     instructions: `You are an AI developer.
@@ -16,7 +17,7 @@ export async function createAIDeveloper() {
     tools: [...functions],
     model: 'gpt-4-1106-preview',
   })
-  console.log(aiDeveloper)
+  console.log("Assistant ready, AI Developer ID that should be added to you .env file:", aiDeveloper.id)
 }
 
 createAIDeveloper()

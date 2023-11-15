@@ -98,4 +98,21 @@ export const functions: Array<
       },
     },
   },
+  // Run code
+  {
+    type: 'function',
+    function: {
+      name: 'runCode',
+      description: 'Run code in the sandbox environment',
+      parameters: {
+        type: 'object',
+        properties: {
+          command: {
+            type: 'string',
+            description: 'The command to run',
+          },
+        },
+      },
+    },
+  },
 ]

@@ -29,7 +29,7 @@ const gitName = 'e2b-assistant[bot]'
 
 const rootdir = '/home/user'
 const repoDir = 'repo'
-const repoDirPath = path.join(rootdir, repoDir)
+const repoDirPath = path.posix.join(rootdir, repoDir);
 
 const branchID = customAlphabet('abcdefghijklmnopqrstuvwxyz1234567890', 6)()
 
@@ -126,6 +126,23 @@ async function makeDir(sandbox: Sandbox, path: string): Promise<string> {
 	}
 }
 
+async function runCode(sandbox: Sandbox, command: string): Promise<string> {
+    sandboxLog(`Running command ${command}`)
+
+    try {
+        const process = await sandbox.process.start({ cmd: command, cwd: repoDirPath })
+        const output = await process.wait()
+
+        if (output.exitCode !== 0) {
+            throw new Error(`Command failed. ${output.stderr}`)
+        }
+
+        return output.stdout
+    } catch (e) {
+        return `Error: ${e.message}`
+    }
+}
+
 async function listFiles(sandbox: Sandbox, path: string): Promise<string> {
 	sandboxLog(`Listing files in ${path}`)
 	try {
@@ -162,12 +179,14 @@ function createThread(repoURL: string, task: string) {
 }
 
 async function initChat(): Promise<{ repoName: string, task: string }> {
-	const { repoName } = await prompts({
+	let { repoName } = await prompts({
 		type: 'text',
 		name: 'repoName',
 		message: 'Enter repo name (eg: username/repo):'
 	} as any) as any
 
+	// Replace any backslashes in the repo name with forward slashes
+	repoName = repoName.replace(/\\/g, '/');
 
 	const { task } = await prompts({
 		type: 'text',
@@ -189,20 +208,27 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
 
 		assistantLog(`Calling tool '${toolName}'`)
 
-		if (toolName === 'makeCommit') {
-			output = await makeCommit(sandbox, args.message)
-		} else if (toolName === 'makePullRequest') {
-			output = await makePullRequest(sandbox,  args.title)
-		} else if (toolName === 'saveCodeToFile') {
-			output = await saveCodeToFile(sandbox, args.code, args.filename)
-		} else if (toolName === 'listFiles') {
-			output = await listFiles(sandbox, args.path)
-		} else if (toolName === 'makeDir') {
-			output = await makeDir(sandbox, args.path)
-		} else if (toolName === 'readFile') {
-			output = await readFile(sandbox, args.path)
-		} else {
-			throw new Error(`Unknown tool: ${toolName}`)
+		try {
+			if (toolName === 'makeCommit') {
+				output = await makeCommit(sandbox, args.message)
+			} else if (toolName === 'makePullRequest') {
+				output = await makePullRequest(sandbox,  args.title)
+			} else if (toolName === 'saveCodeToFile') {
+				output = await saveCodeToFile(sandbox, args.code, args.filename)
+			} else if (toolName === 'listFiles') {
+				output = await listFiles(sandbox, args.path)
+			} else if (toolName === 'makeDir') {
+				output = await makeDir(sandbox, args.path)
+			} else if (toolName === 'readFile') {
+				output = await readFile(sandbox, args.path)
+			} else if (toolName === 'runCode') { 
+				output = await runCode(sandbox, args.command)
+			} else {
+				throw new Error(`Unknown tool: ${toolName}`)
+			}
+		} catch (error) {
+			console.error(`An error occurred: ${error.message}`);
+			continue; // Skip this iteration and continue with the next toolCall
 		}
 
 		assistantLog(`Tool '${toolName}' output: ${output}`)
@@ -280,3 +306,4 @@ while (true) {
 }
 
 await sandbox.close()
+
