@@ -29,7 +29,7 @@ const gitName = 'e2b-assistant[bot]'
 
 const rootdir = '/home/user'
 const repoDir = 'repo'
-const repoDirPath = path.posix.join(rootdir, repoDir);
+const repoDirPath = path.posix.join(rootdir, repoDir)
 
 const branchID = customAlphabet('abcdefghijklmnopqrstuvwxyz1234567890', 6)()
 
