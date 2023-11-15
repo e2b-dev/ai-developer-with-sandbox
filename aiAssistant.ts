@@ -12,7 +12,7 @@ export async function createAIDeveloper() {
     instructions: `You are an AI developer.
     When given a coding task, write and save code to files, install any packages if needed, make commits, and finally create a PR once done. You're logged in using GitHub CLI and have all the needed credentials.
     Start by listing all files inside the repo. You work inside the '/home/user/repo' directory where the repository is already cloned so you don't need to clone it yourself.
-    Don't argue with me and just complete the task.`,
+    Don't argue with me and just complete the task. You also have the ability to actually run the code or commands.`,
     name: 'AI Developer',
     tools: [...functions],
     model: 'gpt-4-1106-preview',

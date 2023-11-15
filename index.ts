@@ -67,6 +67,17 @@ async function cloneRepo(sandbox: Sandbox, repo: string) {
 	await setRemote.wait()
 }
 
+async function listLastFiveRepos(sandbox: Sandbox) {
+	sandboxLog(`Listing last five repos for ${GIT_USERNAME}`)
+
+	const process = await sandbox.process.start({ cmd: `gh repo list ${GIT_USERNAME} --limit 5 --json updatedAt,name --jq '. | sort_by(.updatedAt) | .[] | .name'` })
+	const output = await process.wait()
+
+	if (output.exitCode !== 0) {
+		throw new Error(`Listing repos failed. ${output.stderr}`)
+	}
+}
+
 async function makeCommit(sandbox: Sandbox, message: string): Promise<string> {
 	sandboxLog(`Making commit with message ${message}`)
 	try {
@@ -134,10 +145,17 @@ async function runCode(sandbox: Sandbox, command: string): Promise<string> {
         const output = await process.wait()
 
         if (output.exitCode !== 0) {
-            throw new Error(`Command failed. ${output.stderr}`)
+            throw new Error(`Command failed with exit code ${output.exitCode}. Error: ${output.stderr}`)
         }
 
-        return output.stdout
+        if (!output.stdout) {
+            throw new Error(`Command did not produce any output. Error: ${output.stderr}`)
+        }
+
+        // Replace all non-ASCII characters in the output
+        const cleanedOutput = output.stdout.replace(/[^\x00-\x7F]/g, '')
+
+        return cleanedOutput
     } catch (e) {
         return `Error: ${e.message}`
     }
@@ -244,11 +262,13 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
 	return outputs
 }
 
-const { repoName, task } = await initChat()
-
 const assistant = await getAssistant()
 const sandbox = await Sandbox.create({ id: 'ai-developer-sandbox', onStdout: onLog, onStderr: onLog })
 await loginWithGH(sandbox)
+
+await listLastFiveRepos(sandbox)
+
+const { repoName, task } = await initChat()
 
 // Start terminal session with user
 

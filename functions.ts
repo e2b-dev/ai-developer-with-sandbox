@@ -103,7 +103,7 @@ export const functions: Array<
     type: 'function',
     function: {
       name: 'runCode',
-      description: 'Run code in the sandbox environment',
+      description: 'Run code or commands in the sandbox environment',
       parameters: {
         type: 'object',
         properties: {
