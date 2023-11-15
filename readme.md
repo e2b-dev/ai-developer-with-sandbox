@@ -1,10 +1,7 @@
-# AI Developer GPT-4-Turbo & OpenAI's AI Assistant API
-<p align="center">
-  <img width="100" src="/img/logo-circle.png" alt="e2b logo">
-</p>
+# AI Developer which can run code powered by OpenAI's AI Assistant API
 
 <h3 align="center">
-  AI Developer is an AI agent powered by GPT-4-Turbo that's using <a href="https://e2b.dev/docs">custom E2B Sandbox</a>
+  AI Developer is an AI agent powered by OpenAI Assistant API that's using <a href="https://e2b.dev/docs">custom E2B Sandbox</a>
 </h3>
 
 ---
