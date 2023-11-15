@@ -15,21 +15,6 @@ const openai = new OpenAI()
 
 const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
-function getAssistant() {
-  return openai.beta.assistants.retrieve(AI_ASSISTANT_ID)
-}
-
-function createThread(repoURL: string, task: string) {
-  return openai.beta.threads.create({
-    messages: [
-      {
-        role: 'user',
-        content: `Pull this repo: '${repoURL}'. Then carefully plan this task and start working on it: ${task}`,
-      },
-    ],
-  })
-}
-
 async function initChat(): Promise<{ repoName: string; task: string }> {
   const { repoName } = (await prompts({
     type: 'text',
@@ -68,8 +53,15 @@ await cloneRepo(sandbox, repoName)
 const spinner = ora('Waiting for assistant')
 spinner.start()
 
-const thread = await createThread(repoName, task)
-const assistant = await getAssistant()
+const thread = await openai.beta.threads.create({
+  messages: [
+    {
+      role: 'user',
+      content: `Pull this repo: '${repoName}'. Then carefully plan this task and start working on it: ${task}`,
+    },
+  ],
+})
+const assistant = await openai.beta.assistants.retrieve(AI_ASSISTANT_ID)
 
 let run = await openai.beta.threads.runs.create(thread.id, {
   assistant_id: assistant.id,
@@ -90,7 +82,7 @@ assistantLoop: while (true) {
         })
       }
 
-      continue
+      break
     }
     case 'completed': {
       spinner.stop()
@@ -119,7 +111,7 @@ assistantLoop: while (true) {
     }
     case 'queued':
     case 'in_progress':
-      continue
+      break
     case 'cancelled':
     case 'cancelling':
     case 'expired':
