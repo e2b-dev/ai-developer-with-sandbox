@@ -15,6 +15,7 @@ The AI developer is an AI agent that perform user's tasks in the user's GitHub r
 - making pull requests
 - pulling GitHub repository
 - responding to the user's feedback to the agent's previous work.
+- running commands in the generated environment
 
 All agent's work is happening inside the [E2B sandbox](https://e2b.dev/docs).
 
@@ -25,6 +26,7 @@ The E2B's sandboxes are isolated cloud environments made specifically for AI app
 - Make needed changes
 - Commit work
 - Create a pull request
+- Run commands in the generated environment
 
 The custom E2B sandbox environment is defined in the [`e2b.Dockerfile`](./e2b.Dockerfile)
 
