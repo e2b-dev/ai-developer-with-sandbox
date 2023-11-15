@@ -162,13 +162,15 @@ function createThread(repoURL: string, task: string) {
 }
 
 async function initChat(): Promise<{ repoName: string, task: string }> {
-	const { repoName } = await prompts({
+	let { repoName } = await prompts({
 		type: 'text',
 		name: 'repoName',
 		message: 'Enter repo name (eg: username/repo):'
 	} as any) as any
 
-
+	// Replace any backslashes in the repo name with forward slashes
+	repoName = repoName.replace(/\\/g, '/');
+	
 	const { task } = await prompts({
 		type: 'text',
 		name: 'task',
@@ -189,20 +191,25 @@ async function processAssistantMessage(sandbox: Sandbox, requiredAction: OpenAI.
 
 		assistantLog(`Calling tool '${toolName}'`)
 
-		if (toolName === 'makeCommit') {
-			output = await makeCommit(sandbox, args.message)
-		} else if (toolName === 'makePullRequest') {
-			output = await makePullRequest(sandbox,  args.title)
-		} else if (toolName === 'saveCodeToFile') {
-			output = await saveCodeToFile(sandbox, args.code, args.filename)
-		} else if (toolName === 'listFiles') {
-			output = await listFiles(sandbox, args.path)
-		} else if (toolName === 'makeDir') {
-			output = await makeDir(sandbox, args.path)
-		} else if (toolName === 'readFile') {
-			output = await readFile(sandbox, args.path)
-		} else {
-			throw new Error(`Unknown tool: ${toolName}`)
+		try {
+			if (toolName === 'makeCommit') {
+				output = await makeCommit(sandbox, args.message)
+			} else if (toolName === 'makePullRequest') {
+				output = await makePullRequest(sandbox,  args.title)
+			} else if (toolName === 'saveCodeToFile') {
+				output = await saveCodeToFile(sandbox, args.code, args.filename)
+			} else if (toolName === 'listFiles') {
+				output = await listFiles(sandbox, args.path)
+			} else if (toolName === 'makeDir') {
+				output = await makeDir(sandbox, args.path)
+			} else if (toolName === 'readFile') {
+				output = await readFile(sandbox, args.path)
+			} else {
+				throw new Error(`Unknown tool: ${toolName}`)
+			}
+		} catch (error) {
+			console.error(`An error occurred: ${error.message}`);
+			continue; // Skip this iteration and continue with the next toolCall
 		}
 
 		assistantLog(`Tool '${toolName}' output: ${output}`)
