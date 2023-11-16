@@ -24,13 +24,10 @@ git config --global user.email '${gitEmail}' &&
 git config --global user.name '${gitName}' &&
 git config --global push.autoSetupRemote true`,
   })
-  await process.wait()
-
-  if (process.output.stderr) {
-    return `fail: ${process.output.stderr}`
+  const output = await process.wait()
+  if (output.exitCode !== 0) {
+    throw new Error(`Make sure you've set 'GITHUB_TOKEN' env variable correctly. ${output.stderr}`)
   }
-
-  return 'success'
 }
 
 export async function cloneRepo(sandbox: Sandbox, repo: string) {
@@ -39,7 +36,11 @@ export async function cloneRepo(sandbox: Sandbox, repo: string) {
   const process = await sandbox.process.start({
     cmd: `gh repo clone ${repo} ${repoDirPath}`,
   })
-  await process.wait()
+  const output = await process.wait()
+
+  if (output.exitCode !== 0) {
+    throw new Error(`Cloning repo failed. ${output.stderr}`)
+  }
 
   const processCreateBranch = await sandbox.process.start({
     cmd: `git checkout -b ai-developer-${branchID}`,
@@ -52,6 +53,4 @@ export async function cloneRepo(sandbox: Sandbox, repo: string) {
     cwd: repoDirPath,
   })
   await setRemote.wait()
-
-  return 'success'
 }

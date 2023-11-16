@@ -16,11 +16,14 @@ const openai = new OpenAI()
 const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
 async function initChat(): Promise<{ repoName: string; task: string }> {
-  const { repoName } = (await prompts({
+  let { repoName } = (await prompts({
     type: 'text',
     name: 'repoName',
     message: 'Enter repo name (eg: username/repo):',
   } as any)) as any
+
+	// Replace any backslashes in the repo name with forward slashes
+	repoName = repoName.replace(/\\/g, '/');
 
   const { task } = (await prompts({
     type: 'text',
