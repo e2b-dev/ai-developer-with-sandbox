@@ -256,7 +256,6 @@ await loginWithGH(sandbox)
 const { repoName, task } = await initChat()
 
 // Start terminal session with user
-=======
   const { task } = (await prompts({
     type: 'text',
     name: 'task',
