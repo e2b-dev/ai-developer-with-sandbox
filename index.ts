@@ -40,12 +40,12 @@ const sandbox = await Sandbox.create({
 })
 
 sandbox
-  .registerAction('readFile', readFile)
-  .registerAction('makeCommit', makeCommit)
-  .registerAction('makePullRequest', makePullRequest)
-  .registerAction('saveCodeToFile', saveCodeToFile)
-  .registerAction('makeDir', makeDir)
-  .registerAction('listFiles', listFiles)
+  .addAction(readFile)
+  .addAction(makeCommit)
+  .addAction(makePullRequest)
+  .addAction(saveCodeToFile)
+  .addAction(makeDir)
+  .addAction(listFiles)
 
 await loginWithGH(sandbox)
 await cloneRepo(sandbox, repoName)
@@ -73,7 +73,7 @@ assistantLoop: while (true) {
   switch (run.status) {
     case 'requires_action': {
       spinner.stop()
-      const outputs = await sandbox.openai.assistant.run(run)
+      const outputs = await sandbox.openai.actions.run(run)
       spinner.start()
 
       if (outputs.length > 0) {
