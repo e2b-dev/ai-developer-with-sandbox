@@ -4,23 +4,11 @@
   "description": "",
   "main": "index.js",
   "type": "module",
-  "license": "AGPL-version-3.0",
+  "license": "MIT",
   "private": false,
   "engines": {
-    "node": ">= 14.0.0",
+    "node": ">= 18.0.0",
     "npm": ">= 6.0.0"
-  },
-  "homepage": "",
-  "repository": {
-    "type": "git",
-    "url": ""
-  },
-  "bugs": "",
-  "keywords": [],
-  "author": {
-    "name": "",
-    "email": "",
-    "url": ""
   },
   "contributors": [],
   "scripts": {
@@ -29,16 +17,18 @@
     "start": "tsx index.ts"
   },
   "dependencies": {
-    "@e2b/sdk": "^0.9.1",
+    "@e2b/sdk": "^0.11.0",
     "chalk": "^5.3.0",
     "dotenv": "^16.3.1",
     "nanoid": "^5.0.3",
     "openai": "^4.17.3",
     "ora": "^7.0.1",
-    "prompts": "^2.4.2",
-    "tsx": "^4.1.0"
+    "prompts": "^2.4.2"
   },
   "devDependencies": {
-    "@types/prompts": "^2.4.8"
+    "@types/node": "^20.9.0",
+    "@types/prompts": "^2.4.8",
+    "tsx": "^4.1.2",
+    "typescript": "^5.2.2"
   }
 }
