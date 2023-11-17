@@ -9,47 +9,66 @@ import { Sandbox } from '@e2b/sdk'
 import { onLog } from './log'
 import { cloneRepo, loginWithGH } from './gh'
 import { sleep } from './sleep'
-import { listFiles, makeCommit, makeDir, makePullRequest, readFile, saveCodeToFile, runCode } from './actions'
+import { listFiles, makeCommit, makeDir, makePullRequest, readFile, saveCodeToFile, runCode, runPowershellCommand } from './actions'
 
 const openai = new OpenAI()
 
 const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
-async function initChat(): Promise<{ repoName: string; task: string }> {
-	let { repoName } = (await prompts({
-	  type: 'text',
-	  name: 'repoName',
-	  message: 'Enter repo name (eg: username/repo):',
-	} as any)) as any
+async function initChat(): Promise<{ repoName: string; task: string; mode: string }> {
+  let { mode } = (await prompts({
+    type: 'select',
+    name: 'mode',
+    message: 'Choose mode:',
+    choices: [
+      { title: 'Just chit-chat and run some code or commands', value: 'chit-chat' },
+      { title: 'Code an already available repo', value: 'repo' },
+    ],
+  })) as any
+
+  let repoName = '';
+  let task = '';
+
+  if (mode === 'repo') {
+    let { repoName } = (await prompts({
+      type: 'text',
+      name: 'repoName',
+      message: 'Enter repo name (eg: username/repo):',
+    } as any)) as any
   
-	  // Replace any backslashes in the repo name with forward slashes
-	  repoName = repoName.replace(/\\/g, '/');
+    // Replace any backslashes in the repo name with forward slashes
+    repoName = repoName.replace(/\\/g, '/');
   
-	const { task } = (await prompts({
-	  type: 'text',
-	  name: 'task',
-	  message: 'Enter the task you want the AI developer to work on:',
-	} as any)) as any
-  
-	return { repoName, task }
-  }  
-  
-function getAssistant() {
-	return openai.beta.assistants.retrieve(AI_ASSISTANT_ID)
+    let { task } = (await prompts({
+      type: 'text',
+      name: 'task',
+      message: 'Enter the task you want the AI developer to work on:',
+    } as any)) as any
+  }
+
+  return { repoName, task, mode }
+}  
+
+function createThread(repoURL: string, task: string, mode: string) {
+  let content;
+  if (mode === 'repo') {
+    content = `Pull this repo: '${repoURL}'. Then carefully plan this task and start working on it: ${task}`;
+  } else if (mode === 'chit-chat') {
+    content = `Enter your first command or code:`;
+  } else {
+    content = 'Enter your first command or code:';
+  }
+  return openai.beta.threads.create({
+    messages: [
+      {
+        'role': 'user',
+        'content': content,
+      }
+    ]
+  })
 }
 
-function createThread(repoURL: string, task: string) {
-	return openai.beta.threads.create({
-		messages: [
-			{
-				'role': 'user',
-				'content': `Pull this repo: '${repoURL}'. Then carefully plan this task and start working on it: ${task}`,
-			}
-		]
-	})
-}
-
-const { repoName, task } = await initChat()
+const { repoName, task, mode } = await initChat()
 
 const sandbox = await Sandbox.create({
   id: 'ai-developer-sandbox',
@@ -65,21 +84,17 @@ sandbox
   .addAction(makeDir)
   .addAction(listFiles)
   .addAction(runCode)
+  .addAction(runPowershellCommand)
 
-await loginWithGH(sandbox)
-await cloneRepo(sandbox, repoName)
+if (mode === 'repo') {
+  await loginWithGH(sandbox)
+  await cloneRepo(sandbox, repoName)
+}
 
 const spinner = ora('Waiting for assistant')
 spinner.start()
 
-const thread = await openai.beta.threads.create({
-  messages: [
-    {
-      role: 'user',
-      content: `Pull this repo: '${repoName}'. Then carefully plan this task and start working on it: ${task}`,
-    },
-  ],
-})
+const thread = await createThread(repoName, task, mode)
 const assistant = await openai.beta.assistants.retrieve(AI_ASSISTANT_ID)
 
 let run = await openai.beta.threads.runs.create(thread.id, {

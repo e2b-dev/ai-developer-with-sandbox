@@ -115,3 +115,28 @@ export async function runCode(sandbox: Sandbox, { command }: { command: string }
       return `Error: ${e.message}`
   }
 }
+
+export async function runPowershellCommand(sandbox: Sandbox, { command }: { command: string }): Promise<string> {
+  sandboxLog(`Running powershell command ${command}`)
+
+  try {
+      const powershellCommand = `pwsh -Command "${command}"`
+      const process = await sandbox.process.start({ cmd: powershellCommand, cwd: repoDirPath })
+      const output = await process.wait()
+
+      if (output.exitCode !== 0) {
+          throw new Error(`Command failed with exit code ${output.exitCode}. Error: ${output.stderr}`)
+      }
+
+      if (!output.stdout) {
+          throw new Error(`Command did not produce any output. Error: ${output.stderr}`)
+      }
+
+      // Replace all non-ASCII characters in the output
+      const cleanedOutput = output.stdout.replace(/[^\x00-\x7F]/g, '')
+
+      return cleanedOutput
+  } catch (e) {
+      return `Error: ${e.message}`
+  }
+}
