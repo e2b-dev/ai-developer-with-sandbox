@@ -4,7 +4,7 @@ import path from 'path'
 
 import { sandboxLog } from './utils/log'
 
-export const functions: (AssistantCreateParams.AssistantToolsFunction & { action: Action<CloudBrowser> })[]
+export const functions: (AssistantCreateParams.AssistantToolsFunction & { action: Action })[]
   = [
     {
       async action(sandbox, { code, filename }) {
@@ -40,7 +40,7 @@ export const functions: (AssistantCreateParams.AssistantToolsFunction & { action
       },
     },
     {
-      async action(sandbox: CloudBrowser, { path }) {
+      async action(sandbox, { path }) {
         sandboxLog(`Listing files in ${path}`)
         try {
           const files = await sandbox.filesystem.list(path)
@@ -66,7 +66,7 @@ export const functions: (AssistantCreateParams.AssistantToolsFunction & { action
       },
     },
     {
-      async action(sandbox: Sandbox, { path }) {
+      async action(sandbox, { path }) {
         sandboxLog(`Reading file ${path}`)
         try {
           return await sandbox.filesystem.read(path)
