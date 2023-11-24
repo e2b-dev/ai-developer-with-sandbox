@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@e2b/sdk':
-    specifier: 0.12.0-rc.1
-    version: 0.12.0-rc.1(openai@4.20.0)
+    specifier: 0.12.0-rc.2
+    version: 0.12.0-rc.2(openai@4.20.0)
   chalk:
     specifier: ^5.3.0
     version: 5.3.0
@@ -43,8 +43,8 @@ devDependencies:
 
 packages:
 
-  /@e2b/sdk@0.12.0-rc.1(openai@4.20.0):
-    resolution: {integrity: sha512-EdE7325lt6Qb6vLYYB0I7YZMVe5Uo6+HflormMgSCTtuA72m4CW72YqwnZWZItjrlVM03SYxijt5L3PuhouHgw==}
+  /@e2b/sdk@0.12.0-rc.2(openai@4.20.0):
+    resolution: {integrity: sha512-jNq4KfBKxhytrzos+pjs1TIMe0gEVG+ZuB2hIXCSLnL+UFpbsIkuvHpn2chDv5RpZxontMDDUj0PKO0OJgQGfw==}
     engines: {node: '>=18'}
     peerDependencies:
       openai: ^4.17.4
