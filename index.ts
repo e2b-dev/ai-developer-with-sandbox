@@ -4,54 +4,31 @@ import OpenAI from 'openai'
 import prompts from 'prompts'
 import ora from 'ora'
 import { MessageContentText } from 'openai/resources/beta/threads'
-import { Sandbox } from '@e2b/sdk'
+import { CloudBrowser } from '@e2b/sdk'
 
-import { onLog } from './log'
-import { cloneRepo, loginWithGH } from './gh'
-import { sleep } from './sleep'
-import { listFiles, makeCommit, makeDir, makePullRequest, readFile, saveCodeToFile } from './actions'
+import { onLog } from './utils/log'
+import { sleep } from './utils/sleep'
+import { functions } from './functions'
+import { assistant } from './assistant'
 
 const openai = new OpenAI()
 
-const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
-
-async function initChat(): Promise<{ repoName: string; task: string }> {
-  let { repoName } = (await prompts({
-    type: 'text',
-    name: 'repoName',
-    message: 'Enter repo name (eg: username/repo):',
-  } as any)) as any
-
-	// Replace any backslashes in the repo name with forward slashes
-	repoName = repoName.replace(/\\/g, '/');
-
-  const { task } = (await prompts({
+const { task } = await prompts([
+  {
     type: 'text',
     name: 'task',
-    message: 'Enter the task you want the AI developer to work on:',
-  } as any)) as any
+    message: 'Enter the task you want the AI assistant to work on:',
+  }
+])
 
-  return { repoName, task }
-}
-
-const { repoName, task } = await initChat()
-
-const sandbox = await Sandbox.create({
-  id: 'ai-developer-sandbox',
+const sandbox = await CloudBrowser.create({
   onStdout: onLog,
   onStderr: onLog,
 })
 
-sandbox
-  .addAction(readFile)
-  .addAction(makeCommit)
-  .addAction(makePullRequest)
-  .addAction(saveCodeToFile)
-  .addAction(makeDir)
-  .addAction(listFiles)
-
-await loginWithGH(sandbox)
-await cloneRepo(sandbox, repoName)
+for (const f of functions) {
+  sandbox.addAction(f.function.name, f.action)
+}
 
 const spinner = ora('Waiting for assistant')
 spinner.start()
@@ -60,11 +37,10 @@ const thread = await openai.beta.threads.create({
   messages: [
     {
       role: 'user',
-      content: `Pull this repo: '${repoName}'. Then carefully plan this task and start working on it: ${task}`,
+      content: `Carefully plan task and start working on it: ${task}`,
     },
   ],
 })
-const assistant = await openai.beta.assistants.retrieve(AI_ASSISTANT_ID)
 
 let run = await openai.beta.threads.runs.create(thread.id, {
   assistant_id: assistant.id,

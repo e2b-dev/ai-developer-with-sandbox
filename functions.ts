@@ -1,101 +1,92 @@
 import { AssistantCreateParams } from 'openai/src/resources/beta/assistants/assistants'
+import { Sandbox, CloudBrowser, Action } from '@e2b/sdk'
+import path from 'path'
 
-export const functions: Array<
-  | AssistantCreateParams.AssistantToolsCode
-  | AssistantCreateParams.AssistantToolsRetrieval
-  | AssistantCreateParams.AssistantToolsFunction
-> = [
-  // Save code to file
-  {
-    type: 'function',
-    function: {
-      name: 'saveCodeToFile',
-      description: 'Save code to file',
-      parameters: {
-        type: 'object',
-        properties: {
-          code: {
-            type: 'string',
-            description: 'The code to save',
-          },
-          filename: {
-            type: 'string',
-            description: 'The filename including the path and extension',
+import { sandboxLog } from './utils/log'
+
+export const functions: (AssistantCreateParams.AssistantToolsFunction & { action: Action<CloudBrowser> })[]
+  = [
+    {
+      async action(sandbox, { code, filename }) {
+        sandboxLog(`Saving code to file ${filename}`)
+        try {
+          const dir = path.dirname(filename)
+
+          await sandbox.filesystem.makeDir(dir)
+          await sandbox.filesystem.write(filename, code)
+
+          return 'success'
+        } catch (e) {
+          return `Error: ${e.message}}`
+        }
+      },
+      type: 'function',
+      function: {
+        name: 'saveCodeToFile',
+        description: 'Save code to file',
+        parameters: {
+          type: 'object',
+          properties: {
+            code: {
+              type: 'string',
+              description: 'The code to save',
+            },
+            filename: {
+              type: 'string',
+              description: 'The filename including the path and extension',
+            },
           },
         },
       },
     },
-  },
-  // List files
-  {
-    type: 'function',
-    function: {
-      name: 'listFiles',
-      description: 'List files in a directory',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'The path to the directory',
+    {
+      async action(sandbox: CloudBrowser, { path }) {
+        sandboxLog(`Listing files in ${path}`)
+        try {
+          const files = await sandbox.filesystem.list(path)
+          const response = files.map(file => (file.isDir ? `dir: ${file.name}` : file.name)).join('\n')
+          return response
+        } catch (e) {
+          return `Error: ${e.message}}`
+        }
+      },
+      type: 'function',
+      function: {
+        name: 'listFiles',
+        description: 'List files in a directory',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description: 'The path to the directory',
+            },
           },
         },
       },
     },
-  },
-  // Make commit
-  {
-    type: 'function',
-    function: {
-      name: 'makeCommit',
-      description: 'Make a commit',
-      parameters: {
-        type: 'object',
-        properties: {
-          message: {
-            type: 'string',
-            description: 'The commit message',
+    {
+      async action(sandbox: Sandbox, { path }) {
+        sandboxLog(`Reading file ${path}`)
+        try {
+          return await sandbox.filesystem.read(path)
+        } catch (e) {
+          return `Error: ${e.message}}`
+        }
+      },
+      type: 'function',
+      function: {
+        name: 'readFile',
+        description: 'Read a file',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description: 'The path to the file',
+            },
           },
         },
       },
     },
-  },
-  // Make pull request
-  {
-    type: 'function',
-    function: {
-      name: 'makePullRequest',
-      description: 'Make a pull request',
-      parameters: {
-        type: 'object',
-        properties: {
-          title: {
-            type: 'string',
-            description: 'The pull request title',
-          },
-          body: {
-            type: 'string',
-            description: 'The pull request body',
-          },
-        },
-      },
-    },
-  },
-  // Read file
-  {
-    type: 'function',
-    function: {
-      name: 'readFile',
-      description: 'Read a file',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'The path to the file',
-          },
-        },
-      },
-    },
-  },
-]
+  ]
