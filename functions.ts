@@ -1,8 +1,14 @@
 import { AssistantCreateParams } from 'openai/src/resources/beta/assistants/assistants'
-import { Sandbox, CloudBrowser, Action } from '@e2b/sdk'
+import { Sandbox, CloudBrowser } from '@e2b/sdk'
 import path from 'path'
 
 import { sandboxLog } from './utils/log'
+
+interface Action<S = Sandbox, T = {
+  [key: string]: any;
+}> {
+  (sandbox: S, args: T): string | Promise<string>;
+}
 
 export const functions: (AssistantCreateParams.AssistantToolsFunction & { action: Action<CloudBrowser> })[]
   = [
