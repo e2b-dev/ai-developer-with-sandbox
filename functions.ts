@@ -1,5 +1,4 @@
 import { AssistantCreateParams } from 'openai/src/resources/beta/assistants/assistants'
-  You also have the ability to actually run code. You should try these with custom prompt if you do not find other appropriate tool.
 
 export const assistant_config = 
 {
