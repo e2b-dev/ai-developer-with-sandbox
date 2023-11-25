@@ -36,7 +36,7 @@ The custom E2B sandbox environment is defined in the [`e2b.Dockerfile`](./e2b.Do
 1. Add your OpenAI API key to `.env`
 1. Get E2B API Key at [https://e2b.dev/docs/getting-started/api-key](https://e2b.dev/docs/getting-started/api-key)
     - Save it to `.env`
-1. Run `npm run create-ai` to create the AI assistant using OpenAI's new Assistant API
+1. Run `npm run create-ai-assistant` to create the AI assistant using OpenAI's new Assistant API
 1. Grab the assistant ID you just created here [https://platform.openai.com/assistants](https://platform.openai.com/assistants)
     - Save the assistant ID to `.env`
 1. Create classic GitHub token [here](https://github.com/settings/tokens) and give it the `read:org` and `repo` permissions
@@ -53,5 +53,5 @@ npm run start
 
 If you make changes to the description in `functions.ts`, you can update the AI by running the following command in the terminal:
 ```bash
-npm run update-ai
+npm run update-ai-assistant
 ```

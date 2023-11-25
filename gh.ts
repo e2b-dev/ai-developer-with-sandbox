@@ -54,3 +54,19 @@ export async function cloneRepo(sandbox: Sandbox, repo: string) {
   })
   await setRemote.wait()
 }
+
+export async function listLastEditedRepos(sandbox: Sandbox, username: string) {
+  sandboxLog(`Listing last 10 edited repos of ${username}`)
+
+  const process = await sandbox.process.start({
+    cmd: `gh api users/${username}/repos?sort=updated&direction=desc&per_page=10`,
+  })
+  const output = await process.wait()
+
+  if (output.exitCode !== 0) {
+    throw new Error(`Listing repos failed. ${output.stderr}`)
+  }
+
+  const repos = JSON.parse(output.stdout)
+  return repos.map(repo => `${username}/${repo.name}`)
+}

@@ -9,27 +9,40 @@ import { Sandbox } from '@e2b/sdk'
 import { onLog } from './log'
 import { cloneRepo, loginWithGH } from './gh'
 import { sleep } from './sleep'
-import { listFiles, makeCommit, makeDir, makePullRequest, readFile, saveCodeToFile, runCode, runPowershellCommand } from './actions'
+import { listFiles, makeCommit, makeDir, makePullRequest, readFile, saveCodeToFile, runCode } from './actions'
+
+import { listAIDeveloper } from './aiAssistant-list'
 
 const openai = new OpenAI()
 
-const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
+//const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
-async function initChat(): Promise<{ repoName: string; task: string; mode: string }> {
-  let { mode } = (await prompts({
-    type: 'select',
-    name: 'mode',
-    message: 'Choose mode:',
-    choices: [
-      { title: 'Just chit-chat and run some code or commands', value: 'chit-chat' },
-      { title: 'Code an already available repo', value: 'repo' },
-    ],
-  })) as any
+  // Function to prompt the user to select an AI assistant and return the selected assistant's ID
+  async function selectAIAssistant(): Promise<string> {
+    // Fetch the list of AI assistants
+    const aiAssistants = await listAIDeveloper();
 
-  let repoName = '';
-  let task = '';
+    // Create a list of choices for the prompt
+    const aiChoices = aiAssistants.map((assistant, index) => ({
+      title: assistant.name,
+      value: index,
+    }));
 
-  if (mode === 'repo') {
+    let { selectedAI } = (await prompts({
+      type: 'select',
+      name: 'selectedAI',
+      message: 'Choose an AI assistant:',
+      choices: aiChoices,
+    })) as any;
+
+    // Return the ID of the selected AI assistant
+    return aiAssistants[selectedAI].id;
+  }
+
+  // Set the selected AI assistant
+  const AI_ASSISTANT_ID = await selectAIAssistant();
+
+async function initChat(): Promise<{ repoName: string; task: string }> {
     let { repoName } = (await prompts({
       type: 'text',
       name: 'repoName',
@@ -44,31 +57,11 @@ async function initChat(): Promise<{ repoName: string; task: string; mode: strin
       name: 'task',
       message: 'Enter the task you want the AI developer to work on:',
     } as any)) as any
-  }
 
-  return { repoName, task, mode }
-}  
-
-function createThread(repoURL: string, task: string, mode: string) {
-  let content;
-  if (mode === 'repo') {
-    content = `Pull this repo: '${repoURL}'. Then carefully plan this task and start working on it: ${task}`;
-  } else if (mode === 'chit-chat') {
-    content = `Enter your first command or code:`;
-  } else {
-    content = 'Enter your first command or code:';
-  }
-  return openai.beta.threads.create({
-    messages: [
-      {
-        'role': 'user',
-        'content': content,
-      }
-    ]
-  })
+  return { repoName, task }
 }
 
-const { repoName, task, mode } = await initChat()
+const { repoName, task } = await initChat()
 
 const sandbox = await Sandbox.create({
   id: 'ai-developer-sandbox',
@@ -84,17 +77,21 @@ sandbox
   .addAction(makeDir)
   .addAction(listFiles)
   .addAction(runCode)
-  .addAction(runPowershellCommand)
 
-if (mode === 'repo') {
   await loginWithGH(sandbox)
   await cloneRepo(sandbox, repoName)
-}
 
 const spinner = ora('Waiting for assistant')
 spinner.start()
 
-const thread = await createThread(repoName, task, mode)
+const thread = await openai.beta.threads.create({
+  messages: [
+    {
+      role: 'user',
+      content: `Pull this repo: '${repoName}'. Then carefully plan this task and start working on it: ${task}`,
+    },
+  ],
+})
 const assistant = await openai.beta.assistants.retrieve(AI_ASSISTANT_ID)
 
 let run = await openai.beta.threads.runs.create(thread.id, {

@@ -1,8 +1,8 @@
 import OpenAI from 'openai'
 import 'dotenv/config'
 
-import { functions } from './functions'
-import { assistant_config } from './functions';
+import { functions } from './aiFunctions'
+import { assistant_config } from './aiFunctions';
 
 const openai = new OpenAI()
 

@@ -1,13 +1,13 @@
 import OpenAI from 'openai'
 import 'dotenv/config'
 
-import { functions } from './functions'
-import { assistant_config } from './functions';
+import { functions } from './aiFunctions'
+import { assistant_config } from './aiFunctions';
 
 const openai = new OpenAI()
 
 // Run this to update the assistant!
-// npm run create-ai
+// npm run create-ai-assistant
 export async function updateAIDeveloper() {
   
   const aiDeveloper = await openai.beta.assistants.update(

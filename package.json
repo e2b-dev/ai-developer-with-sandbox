@@ -13,8 +13,9 @@
   "contributors": [],
   "scripts": {
     "dev": "",
-    "create-ai": "tsx aiAssistant-create.ts",
-    "update-ai": "tsx aiAssistant-update.ts",
+    "create-ai-assistant": "tsx aiAssistant-create.ts",
+    "update-ai-assistant": "tsx aiAssistant-update.ts",
+    "list-ai-assistant": "tsx aiAssistant-list.ts",
     "start": "tsx index.ts"
 
   },
