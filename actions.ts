@@ -104,7 +104,7 @@ export async function runCode(sandbox: Sandbox, { command }: { command: string }
       }
 
       if (!output.stdout) {
-          throw new Error(`Command did not produce any output. Error: ${output.stderr}`)
+          console.log(`Command did not produce any output. Error: ${output.stderr}`)
       }
 
       // Replace all non-ASCII characters in the output
