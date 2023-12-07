@@ -15,7 +15,6 @@ import { listAIDeveloper } from './aiAssistant-list'
 
 const openai = new OpenAI()
 
-//const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
 
   // Function to prompt the user to select an AI assistant and return the selected assistant's ID
   async function selectAIAssistant(): Promise<string> {
