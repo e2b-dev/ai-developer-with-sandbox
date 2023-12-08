@@ -127,21 +127,4 @@ export const functions: Array<
       },
     },
   },
-  // Run PowerShell command
-  {
-    type: 'function',
-    function: {
-      name: 'runPowershellCommand',
-      description: 'Run PowerShell commands in the sandbox environment',
-      parameters: {
-        type: 'object',
-        properties: {
-          command: {
-            type: 'string',
-            description: 'The PowerShell command to run',
-          },
-        },
-      },
-    },
-  },
 ]
