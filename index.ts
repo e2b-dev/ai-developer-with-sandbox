@@ -9,27 +9,53 @@ import { Sandbox } from '@e2b/sdk'
 import { onLog } from './log'
 import { cloneRepo, loginWithGH } from './gh'
 import { sleep } from './sleep'
-import { listFiles, makeCommit, makeDir, makePullRequest, readFile, saveCodeToFile } from './actions'
+import { listFiles, makeCommit, makeDir, makePullRequest, readFile, saveCodeToFile, runCode } from './actions'
+
+import { listAIDeveloper } from './aiAssistant-list'
 
 const openai = new OpenAI()
 
-const AI_ASSISTANT_ID = process.env.AI_ASSISTANT_ID!
+
+  // Function to prompt the user to select an AI assistant and return the selected assistant's ID
+  async function selectAIAssistant(): Promise<string> {
+    // Fetch the list of AI assistants
+    const aiAssistants = await listAIDeveloper();
+
+    // Create a list of choices for the prompt
+    const aiChoices = aiAssistants.map((assistant, index) => ({
+      title: assistant.name,
+      value: index,
+    }));
+
+    let { selectedAI } = (await prompts({
+      type: 'select',
+      name: 'selectedAI',
+      message: 'Choose an AI assistant:',
+      choices: aiChoices,
+    })) as any;
+
+    // Return the ID of the selected AI assistant
+    return aiAssistants[selectedAI].id;
+  }
+
+  // Set the selected AI assistant
+  const AI_ASSISTANT_ID = await selectAIAssistant();
 
 async function initChat(): Promise<{ repoName: string; task: string }> {
-  let { repoName } = (await prompts({
-    type: 'text',
-    name: 'repoName',
-    message: 'Enter repo name (eg: username/repo):',
-  } as any)) as any
-
-	// Replace any backslashes in the repo name with forward slashes
-	repoName = repoName.replace(/\\/g, '/');
-
-  const { task } = (await prompts({
-    type: 'text',
-    name: 'task',
-    message: 'Enter the task you want the AI developer to work on:',
-  } as any)) as any
+    let { repoName } = (await prompts({
+      type: 'text',
+      name: 'repoName',
+      message: 'Enter repo name (eg: username/repo):',
+    } as any)) as any
+  
+    // Replace any backslashes in the repo name with forward slashes
+    repoName = repoName.replace(/\\/g, '/');
+  
+    let { task } = (await prompts({
+      type: 'text',
+      name: 'task',
+      message: 'Enter the task you want the AI developer to work on:',
+    } as any)) as any
 
   return { repoName, task }
 }
@@ -49,9 +75,10 @@ sandbox
   .addAction(saveCodeToFile)
   .addAction(makeDir)
   .addAction(listFiles)
+  .addAction(runCode)
 
-await loginWithGH(sandbox)
-await cloneRepo(sandbox, repoName)
+  await loginWithGH(sandbox)
+  await cloneRepo(sandbox, repoName)
 
 const spinner = ora('Waiting for assistant')
 spinner.start()

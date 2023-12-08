@@ -12,7 +12,7 @@ const gitName = 'e2b-assistant[bot]'
 
 export const rootdir = '/home/user'
 export const repoDir = 'repo'
-export const repoDirPath = path.join(rootdir, repoDir)
+export const repoDirPath = path.posix.join(rootdir, repoDir)
 
 export const branchID = customAlphabet('abcdefghijklmnopqrstuvwxyz1234567890', 6)()
 
@@ -53,4 +53,20 @@ export async function cloneRepo(sandbox: Sandbox, repo: string) {
     cwd: repoDirPath,
   })
   await setRemote.wait()
+}
+
+export async function listLastEditedRepos(sandbox: Sandbox, username: string) {
+  sandboxLog(`Listing last 10 edited repos of ${username}`)
+
+  const process = await sandbox.process.start({
+    cmd: `gh api users/${username}/repos?sort=updated&direction=desc&per_page=10`,
+  })
+  const output = await process.wait()
+
+  if (output.exitCode !== 0) {
+    throw new Error(`Listing repos failed. ${output.stderr}`)
+  }
+
+  const repos = JSON.parse(output.stdout)
+  return repos.map(repo => `${username}/${repo.name}`)
 }

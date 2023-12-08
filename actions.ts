@@ -91,3 +91,27 @@ export async function readFile(sandbox: Sandbox, { path }: { path: string }): Pr
     return `Error: ${e.message}}`
   }
 }
+
+export async function runCode(sandbox: Sandbox, { command }: { command: string }): Promise<string> {
+  sandboxLog(`Running command ${command}`)
+
+  try {
+      const process = await sandbox.process.start({ cmd: command, cwd: repoDirPath })
+      const output = await process.wait()
+
+      if (output.exitCode !== 0) {
+          throw new Error(`Command failed with exit code ${output.exitCode}. Error: ${output.stderr}`)
+      }
+
+      if (!output.stdout) {
+          console.log(`Command did not produce any output. Error: ${output.stderr}`)
+      }
+
+      // Replace all non-ASCII characters in the output
+      const cleanedOutput = output.stdout.replace(/[^\x00-\x7F]/g, '')
+
+      return cleanedOutput
+  } catch (e) {
+      return `Error: ${e.message}`
+  }
+}
